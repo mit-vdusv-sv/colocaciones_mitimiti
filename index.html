@@ -60,7 +60,7 @@
       box-shadow:var(--shadow);
       padding:14px;
       display:grid;
-      grid-template-columns:repeat(5,1fr);
+      grid-template-columns:repeat(6,1fr);
       gap:12px;
       position:sticky;
       top:8px;
@@ -86,6 +86,9 @@
     .chart-wrap.sm{height:280px}
     #map{height:330px;border-radius:14px;overflow:hidden;background:#e5edf5}
     .note{font-size:12px;color:var(--muted);margin-top:9px;line-height:1.4}
+    .map-legend{margin-top:10px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:12px;color:var(--muted)}
+    .legend-item{display:flex;align-items:center;gap:5px}
+    .legend-swatch{width:18px;height:10px;border-radius:999px;border:1px solid rgba(15,23,42,.12)}
     .table-wrap{max-height:360px;overflow:auto;border:1px solid var(--line);border-radius:14px}
     table{border-collapse:collapse;width:100%;font-size:13px;background:white}
     th,td{padding:10px;border-bottom:1px solid var(--line);text-align:left;white-space:nowrap}
@@ -131,6 +134,7 @@
       <div class="field"><label for="provinciaFilter">Provincia</label><select id="provinciaFilter"><option value="">Todas</option></select></div>
       <div class="field"><label for="cantonFilter">Cantón</label><select id="cantonFilter"><option value="">Todos</option></select></div>
       <div class="field"><label for="bancoFilter">Banco</label><select id="bancoFilter"><option value="">Todos</option></select></div>
+      <div class="field"><label for="gobiernoFilter">Gobierno</label><select id="gobiernoFilter"><option value="">Todos</option></select></div>
       <div class="field"><label for="startDate">Desde</label><input type="date" id="startDate"></div>
       <div class="field"><label for="endDate">Hasta</label><input type="date" id="endDate"></div>
       <div class="actions"><button class="clear-btn" onclick="resetFilters()">Limpiar filtros</button></div>
@@ -146,7 +150,7 @@
 
     <section class="grid">
       <div class="card"><h2>Línea de tiempo mensual de créditos colocados</h2><div class="chart-wrap"><canvas id="timelineChart"></canvas></div></div>
-      <div class="card"><h2>Mapa por provincia</h2><div id="map"></div><div class="note">Color más intenso = mayor número de operaciones filtradas. El archivo <b>provincias_ecuador_normalizado.geojson</b> debe estar en la misma carpeta que este HTML.</div></div>
+      <div class="card"><h2>Mapa por provincia</h2><div id="map"></div><div class="map-legend" id="mapLegend"></div></div>
     </section>
 
     <section class="grid-3">
@@ -210,6 +214,14 @@
   function parseDate(v){
     if(!v) return null;
     const s = String(v).trim();
+    // Si Google Sheets entrega la fecha como número serial, se convierte a fecha real.
+    if(/^\d+(?:\.\d+)?$/.test(s)){
+      const serial = Number(s);
+      if(serial > 20000 && serial < 60000){
+        const d = new Date(Math.round((serial - 25569) * 86400 * 1000));
+        return isNaN(d) ? null : d;
+      }
+    }
     const m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
     if(m){
       const d = new Date(Number(m[3]), Number(m[2])-1, Number(m[1]));
@@ -275,8 +287,12 @@
       credito: findHeader(headers,['MONTO CREDI','MONTO CREDITO','MONTO CRÉDITO','MONTOCREDI','CREDITO']),
       garantia: findHeader(headers,['MONTO GARAI','MONTO GARANTIA','MONTO GARANTÍA','MONTOGARAI','GARANTIA']),
       segmento: findHeader(headers,['SEGMENTO']),
-      aporte: findHeader(headers,['APORTE ESTA GOBIERNO','APORTE ESTADO GOBIERNO','APORTE GOBIERNO','APORTEESTAGOBIERNO','APORTE'])
+      aporte: findHeader(headers,['APORTE_ESTA','APORTE ESTA','APORTE ESTATAL','APORTE GOBIERNO','APORTE']),
+      gobierno: findHeader(headers,['GOBIERNO','PERIODO GOBIERNO','TIPO GOBIERNO'])
     };
+    // Fallback por posición según la estructura mostrada: A FECHA, B BANCO, C OPERACION, D PROVINCIA, E CANTON, F SEXO, G MONTO_CREDITO, H MONTO_GARANTIA, I SEGMENTO, J APORTE_ESTA, K GOBIERNO.
+    const fallback = {fecha:0,banco:1,operacion:2,provincia:3,canton:4,sexo:5,credito:6,garantia:7,segmento:8,aporte:9,gobierno:10};
+    Object.keys(fallback).forEach(k => { if(idx[k] < 0 && headers.length > fallback[k]) idx[k] = fallback[k]; });
     if(idx.fecha < 0 || idx.provincia < 0 || idx.canton < 0 || idx.banco < 0) {
       throw new Error('No se encontraron columnas básicas: FECHA, BANCO, PROVINCIA y CANTON. Revisa los encabezados de la hoja.');
     }
@@ -293,9 +309,10 @@
         credito: idx.credito >= 0 ? parseMoney(r[idx.credito]) : 0,
         garantia: idx.garantia >= 0 ? parseMoney(r[idx.garantia]) : 0,
         segmento: idx.segmento >= 0 ? String(r[idx.segmento] || '').trim() : '',
-        aporte: idx.aporte >= 0 ? parseMoney(r[idx.aporte]) : 0
+        aporte: idx.aporte >= 0 ? parseMoney(r[idx.aporte]) : 0,
+        gobierno: idx.gobierno >= 0 ? String(r[idx.gobierno] || '').trim() : ''
       };
-    });
+    }).filter(d => d.fecha && d.fecha <= new Date());
   }
 
   function uniqueSorted(arr){return [...new Set(arr.filter(Boolean))].sort((a,b)=>a.localeCompare(b,'es'))}
@@ -334,6 +351,7 @@
   function populateFilters(){
     setOptions($('provinciaFilter'), uniqueSorted(rawData.map(d=>d.provincia)), 'Todas');
     setOptions($('bancoFilter'), uniqueSorted(rawData.map(d=>d.banco)), 'Todos');
+    setOptions($('gobiernoFilter'), uniqueSorted(rawData.map(d=>d.gobierno)), 'Todos');
     updateCantonOptions();
   }
   function updateCantonOptions(){
@@ -346,10 +364,11 @@
     const p = $('provinciaFilter').value;
     const c = $('cantonFilter').value;
     const b = $('bancoFilter').value;
+    const g = $('gobiernoFilter').value;
     const sd = $('startDate').value ? new Date($('startDate').value+'T00:00:00') : null;
     const ed = $('endDate').value ? new Date($('endDate').value+'T23:59:59') : null;
     filteredData = rawData.filter(d =>
-      (!p || d.provincia === p) && (!c || d.canton === c) && (!b || d.banco === b) &&
+      (!p || d.provincia === p) && (!c || d.canton === c) && (!b || d.banco === b) && (!g || d.gobierno === g) &&
       (!sd || (d.fecha && d.fecha >= sd)) && (!ed || (d.fecha && d.fecha <= ed))
     );
     updateKPIs(); updateCharts(); updateMap(); updateTable();
@@ -373,14 +392,27 @@
 
   function makeChart(id,type,labels,datasets,options={}){
     if(charts[id]) charts[id].destroy();
-    charts[id] = new Chart($(id),{
-      type,
-      data:{labels,datasets},
-      options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:datasets.length>1 || type==='doughnut',position:'bottom'},tooltip:{callbacks:{label:ctx=>{
-        const v = ctx.raw ?? 0;
-        return `${ctx.dataset.label || ctx.label}: ${options.money ? moneyFmt.format(v) : numFmt.format(v)}`;
-      }}}},scales: type==='doughnut' ? {} : {x:{grid:{display:false},ticks:{maxRotation:45,minRotation:0}},y:{beginAtZero:true,ticks:{callback:v=>options.money?moneyFmt.format(v):numFmt.format(v)}}},...options.chartOptions}
-    });
+    const horizontal = options.chartOptions && options.chartOptions.indexAxis === 'y';
+    const baseOptions = {
+      responsive:true,
+      maintainAspectRatio:false,
+      indexAxis: horizontal ? 'y' : 'x',
+      plugins:{
+        legend:{display:datasets.length>1 || type==='doughnut',position:'bottom'},
+        tooltip:{callbacks:{label:ctx=>{
+          const v = ctx.raw ?? 0;
+          return `${ctx.dataset.label || ctx.label}: ${options.money ? moneyFmt.format(v) : numFmt.format(v)}`;
+        }}}
+      },
+      scales: type==='doughnut' ? {} : (horizontal ? {
+        x:{beginAtZero:true,ticks:{callback:v=>options.money?moneyFmt.format(v):numFmt.format(v)}},
+        y:{type:'category',grid:{display:false},ticks:{autoSkip:false,callback:function(value){return this.getLabelForValue(value);}}}
+      } : {
+        x:{grid:{display:false},ticks:{maxRotation:45,minRotation:0}},
+        y:{beginAtZero:true,ticks:{callback:v=>options.money?moneyFmt.format(v):numFmt.format(v)}}
+      })
+    };
+    charts[id] = new Chart($(id),{type,data:{labels,datasets},options:baseOptions});
   }
 
   function updateCharts(){
@@ -438,7 +470,21 @@
       onEachFeature:(f,l)=>{const name=featureName(f); const v=counts.get(normalizeText(name))||0; l.bindTooltip(`<b>${name}</b><br>${numFmt.format(v)} operaciones`,{sticky:true});}
     }).addTo(map);
     try{map.fitBounds(geoLayer.getBounds(),{padding:[10,10]});}catch(e){}
+    updateMapLegend(max);
     setTimeout(()=>map.invalidateSize(),150);
+  }
+
+  function updateMapLegend(max){
+    const el = $('mapLegend');
+    if(!el) return;
+    const ranges = [
+      {label:'0', color:'#e2e8f0'},
+      {label:'Bajo', color:'#fb923c'},
+      {label:'Medio', color:'#facc15'},
+      {label:'Alto', color:'#14b8a6'},
+      {label:'Muy alto', color:'#0f766e'}
+    ];
+    el.innerHTML = '<b>Escala:</b> ' + ranges.map(r => `<span class="legend-item"><span class="legend-swatch" style="background:${r.color}"></span>${r.label}</span>`).join('') + `<span>Máximo: ${numFmt.format(max)} operaciones</span>`;
   }
 
   function updateTable(){
@@ -453,7 +499,7 @@
   }
 
   function resetFilters(){
-    $('provinciaFilter').value=''; $('bancoFilter').value='';
+    $('provinciaFilter').value=''; $('bancoFilter').value=''; $('gobiernoFilter').value='';
     updateCantonOptions(); $('cantonFilter').value='';
     const dates = rawData.map(d=>d.fecha).filter(Boolean).sort((a,b)=>a-b);
     if(dates.length){$('startDate').value=toISODate(dates[0]); $('endDate').value=toISODate(dates[dates.length-1]);}
@@ -461,7 +507,7 @@
   }
   function showError(msg){const box=$('errorBox'); box.style.display=msg?'block':'none'; box.textContent=msg;}
 
-  ['provinciaFilter','bancoFilter','startDate','endDate'].forEach(id=>$(id).addEventListener('change',()=>{if(id==='provinciaFilter') updateCantonOptions(); applyFilters();}));
+  ['provinciaFilter','bancoFilter','gobiernoFilter','startDate','endDate'].forEach(id=>$(id).addEventListener('change',()=>{if(id==='provinciaFilter') updateCantonOptions(); applyFilters();}));
   $('cantonFilter').addEventListener('change',applyFilters);
 
   loadData();
