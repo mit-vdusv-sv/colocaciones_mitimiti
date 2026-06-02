@@ -4,26 +4,132 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>Dashboard de Colocaciones - Gerencia</title>
+
   <link rel="preconnect" href="https://docs.google.com" />
   <link rel="preconnect" href="https://cdn.jsdelivr.net" />
   <link rel="preconnect" href="https://unpkg.com" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
   <style>
-    :root{--bg:#f4f7fb;--card:#fff;--text:#0f172a;--muted:#64748b;--line:#e2e8f0;--primary:#0f766e;--dark:#183153;--shadow:0 12px 30px rgba(15,23,42,.08);--radius:18px}
-    *{box-sizing:border-box} body{margin:0;font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:var(--bg);color:var(--text)}
-    .app{max-width:1440px;margin:0 auto;padding:18px}.topbar{background:linear-gradient(135deg,#0f766e,#0b4f4a 62%,#183153);color:white;border-radius:24px;padding:22px 24px;box-shadow:var(--shadow);display:flex;align-items:center;justify-content:space-between;gap:16px}.title h1{font-size:clamp(23px,3vw,36px);margin:0;font-weight:900;letter-spacing:-.045em}.title p{margin:8px 0 0;color:rgba(255,255,255,.84);font-size:14px}.status{display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:flex-end}.pill{background:rgba(255,255,255,.13);border:1px solid rgba(255,255,255,.18);border-radius:999px;padding:8px 13px;white-space:nowrap;font-size:13px}.refresh-btn{border:0;background:#fff;color:#0f766e;border-radius:999px;padding:10px 16px;font-weight:900;cursor:pointer;box-shadow:0 6px 14px rgba(0,0,0,.12)}
-    .filters{margin-top:16px;background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:14px;display:grid;grid-template-columns:repeat(6,1fr);gap:12px;position:sticky;top:8px;z-index:900}.field label{display:block;font-size:12px;color:var(--muted);font-weight:800;margin:0 0 6px}select,input{width:100%;height:40px;border:1px solid var(--line);border-radius:12px;padding:0 10px;background:#fff;color:var(--text);font:inherit;outline:none}select:focus,input:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(15,118,110,.12)}.actions{display:flex;gap:8px;align-items:end}.clear-btn{width:100%;height:40px;border:1px solid var(--line);background:#f8fafc;border-radius:12px;font-weight:900;color:#334155;cursor:pointer}
-    .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-top:16px}.kpi{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:16px;box-shadow:var(--shadow)}.kpi span{font-size:12px;color:var(--muted);font-weight:900;text-transform:uppercase;letter-spacing:.06em}.kpi strong{display:block;margin-top:8px;font-size:clamp(24px,2.7vw,34px);letter-spacing:-.045em}.kpi small{display:block;margin-top:6px;color:var(--muted)}
-    .grid{display:grid;grid-template-columns:1.3fr .9fr;gap:14px;margin-top:14px}.grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-top:14px}.card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:16px;min-width:0}.card h2{margin:0 0 12px;font-size:18px;letter-spacing:-.02em}.chart-wrap{height:335px;position:relative}.chart-wrap.sm{height:290px}#map{height:335px;border-radius:14px;overflow:hidden;background:#e5edf5}.legend{display:flex;gap:9px;align-items:center;flex-wrap:wrap;font-size:12px;color:var(--muted);margin-top:9px}.legend i{width:17px;height:10px;border-radius:999px;display:inline-block;border:1px solid rgba(0,0,0,.08)}.table-wrap{max-height:360px;overflow:auto;border:1px solid var(--line);border-radius:14px}table{border-collapse:collapse;width:100%;font-size:13px;background:#fff}th,td{padding:10px;border-bottom:1px solid var(--line);text-align:left;white-space:nowrap}th{position:sticky;top:0;background:#f8fafc;z-index:1;color:#475569;font-size:12px;text-transform:uppercase;letter-spacing:.04em}.loader{position:fixed;inset:0;background:rgba(244,247,251,.86);display:flex;align-items:center;justify-content:center;z-index:9999;backdrop-filter:blur(5px)}.loader-box{background:#fff;border:1px solid var(--line);border-radius:20px;padding:20px 24px;box-shadow:var(--shadow);font-weight:900;color:var(--primary)}.error{display:none;margin-top:14px;background:#fff1f2;color:#9f1239;border:1px solid #fecdd3;border-radius:14px;padding:12px;font-size:14px}.leaflet-control-attribution{font-size:10px}
-    @media(max-width:1100px){.filters{grid-template-columns:repeat(3,1fr)}.kpis{grid-template-columns:repeat(2,1fr)}.grid,.grid-3{grid-template-columns:1fr}}@media(max-width:650px){.app{padding:10px}.topbar{border-radius:18px;align-items:flex-start;flex-direction:column;padding:18px}.status{justify-content:flex-start}.filters{grid-template-columns:1fr;position:static;padding:12px;gap:10px}.kpis{grid-template-columns:1fr;gap:10px}.card,.kpi{padding:13px;border-radius:16px}.chart-wrap,.chart-wrap.sm,#map{height:310px}th,td{padding:8px;font-size:12px}}
+    :root{
+      --bg:#f4f7fb;
+      --card:#ffffff;
+      --text:#172033;
+      --muted:#667085;
+      --line:#e6eaf2;
+      --primary:#0f766e;
+      --primary-2:#115e59;
+      --accent:#eab308;
+      --danger:#dc2626;
+      --shadow:0 10px 28px rgba(15,23,42,.08);
+      --radius:18px;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0;
+      font-family:Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background:var(--bg);
+      color:var(--text);
+    }
+    .app{max-width:1440px;margin:0 auto;padding:18px}
+    .topbar{
+      background:linear-gradient(135deg,#0f766e,#0b4f4a 62%,#183153);
+      color:white;
+      border-radius:24px;
+      padding:22px 24px;
+      box-shadow:var(--shadow);
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:16px;
+    }
+    .title h1{font-size:clamp(22px,3vw,34px);margin:0;font-weight:800;letter-spacing:-.04em}
+    .title p{margin:7px 0 0;color:rgba(255,255,255,.82);font-size:14px}
+    .status{display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:flex-end;font-size:13px;color:rgba(255,255,255,.84)}
+    .pill{background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.18);border-radius:999px;padding:8px 12px;white-space:nowrap}
+    .refresh-btn{border:0;background:#fff;color:#0f766e;border-radius:999px;padding:9px 14px;font-weight:800;cursor:pointer;box-shadow:0 6px 14px rgba(0,0,0,.12)}
+
+    .filters{
+      margin-top:16px;
+      background:var(--card);
+      border:1px solid var(--line);
+      border-radius:var(--radius);
+      box-shadow:var(--shadow);
+      padding:14px;
+      display:grid;
+      grid-template-columns:repeat(6,1fr);
+      gap:12px;
+      position:sticky;
+      top:8px;
+      z-index:900;
+    }
+    .field label{display:block;font-size:12px;color:var(--muted);font-weight:700;margin:0 0 6px}
+    select,input{width:100%;height:40px;border:1px solid var(--line);border-radius:12px;padding:0 10px;background:white;color:var(--text);font:inherit;outline:none}
+    select:focus,input:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(15,118,110,.12)}
+    .actions{display:flex;gap:8px;align-items:end}
+    .clear-btn{width:100%;height:40px;border:1px solid var(--line);background:#f8fafc;border-radius:12px;font-weight:800;color:#334155;cursor:pointer}
+
+    .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-top:16px}
+    .kpi{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:16px;box-shadow:var(--shadow)}
+    .kpi span{font-size:12px;color:var(--muted);font-weight:800;text-transform:uppercase;letter-spacing:.05em}
+    .kpi strong{display:block;margin-top:8px;font-size:clamp(22px,2.6vw,32px);letter-spacing:-.04em}
+    .kpi small{display:block;margin-top:6px;color:var(--muted)}
+
+    .grid{display:grid;grid-template-columns:1.3fr .9fr;gap:14px;margin-top:14px}
+    .grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-top:14px}
+    .card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:16px;min-width:0}
+    .card h2{margin:0 0 12px;font-size:17px;letter-spacing:-.02em}
+    .chart-wrap{height:330px;position:relative}
+    .chart-wrap.sm{height:280px}
+    #map{height:330px;border-radius:14px;overflow:hidden;background:#e5edf5}
+    .note{font-size:12px;color:var(--muted);margin-top:9px;line-height:1.4}
+    .map-legend{margin-top:10px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:12px;color:var(--muted)}
+    .legend-item{display:flex;align-items:center;gap:5px}
+    .legend-swatch{width:18px;height:10px;border-radius:999px;border:1px solid rgba(15,23,42,.12)}
+    .table-wrap{max-height:360px;overflow:auto;border:1px solid var(--line);border-radius:14px}
+    table{border-collapse:collapse;width:100%;font-size:13px;background:white}
+    th,td{padding:10px;border-bottom:1px solid var(--line);text-align:left;white-space:nowrap}
+    th{position:sticky;top:0;background:#f8fafc;z-index:1;color:#475569;font-size:12px;text-transform:uppercase;letter-spacing:.04em}
+    .loader{position:fixed;inset:0;background:rgba(244,247,251,.86);display:flex;align-items:center;justify-content:center;z-index:9999;backdrop-filter:blur(5px)}
+    .loader-box{background:white;border:1px solid var(--line);border-radius:20px;padding:20px 24px;box-shadow:var(--shadow);font-weight:800;color:var(--primary)}
+    .error{display:none;margin-top:14px;background:#fff1f2;color:#9f1239;border:1px solid #fecdd3;border-radius:14px;padding:12px;font-size:14px}
+    .leaflet-control-attribution{font-size:10px}
+
+    @media(max-width:1000px){
+      .filters{grid-template-columns:repeat(2,1fr);position:static}
+      .actions{grid-column:1/-1}
+      .kpis{grid-template-columns:repeat(2,1fr)}
+      .grid,.grid-3{grid-template-columns:1fr}
+    }
+    @media(max-width:620px){
+      .app{padding:10px}
+      .topbar{border-radius:18px;align-items:flex-start;flex-direction:column;padding:18px}
+      .status{justify-content:flex-start}
+      .filters{grid-template-columns:1fr;padding:12px;gap:10px}
+      .kpis{grid-template-columns:1fr;gap:10px}
+      .card,.kpi{padding:13px;border-radius:16px}
+      .chart-wrap,.chart-wrap.sm,#map{height:300px}
+      th,td{padding:8px;font-size:12px}
+    }
   </style>
 </head>
 <body>
   <div class="loader" id="loader"><div class="loader-box">Cargando datos desde Google Sheets...</div></div>
   <main class="app">
-    <section class="topbar"><div class="title"><h1>Dashboard de Colocaciones - Gerencia</h1><p>Seguimiento de créditos colocados por provincia, cantón, banco, segmento y periodo.</p></div><div class="status"><span class="pill" id="lastUpdate">Sin actualizar</span><button class="refresh-btn" onclick="loadData()">Actualizar</button></div></section>
+    <section class="topbar">
+      <div class="title">
+        <h1>Dashboard de Colocaciones - Gerencia</h1>
+        <p>Seguimiento de créditos colocados por provincia, cantón, banco, segmento y periodo.</p>
+      </div>
+      <div class="status">
+        <span class="pill" id="lastUpdate">Sin actualizar</span>
+        <button class="refresh-btn" onclick="loadData()">Actualizar</button>
+      </div>
+    </section>
+
     <section class="filters">
       <div class="field"><label for="provinciaFilter">Provincia</label><select id="provinciaFilter"><option value="">Todas</option></select></div>
       <div class="field"><label for="cantonFilter">Cantón</label><select id="cantonFilter"><option value="">Todos</option></select></div>
@@ -34,74 +140,594 @@
       <div class="actions"><button class="clear-btn" onclick="resetFilters()">Limpiar filtros</button></div>
     </section>
     <div class="error" id="errorBox"></div>
-    <section class="kpis"><div class="kpi"><span>Total operaciones</span><strong id="kpiOps">0</strong><small>Créditos colocados</small></div><div class="kpi"><span>Monto crédito</span><strong id="kpiCredito">$0</strong><small>Suma del monto de crédito</small></div><div class="kpi"><span>Aporte Gobierno</span><strong id="kpiAporte">$0</strong><small>Suma del aporte estatal</small></div><div class="kpi"><span>Monto garantía</span><strong id="kpiGarantia">$0</strong><small>Suma del monto de garantía</small></div></section>
-    <section class="grid"><div class="card"><h2>Línea de tiempo mensual de créditos colocados</h2><div class="chart-wrap"><canvas id="timelineChart"></canvas></div></div><div class="card"><h2>Mapa por provincia</h2><div id="map"></div><div class="legend"><b>Escala:</b><span><i style="background:#e2e8f0"></i> 0</span><span><i style="background:#fed7aa"></i> Bajo</span><span><i style="background:#facc15"></i> Medio</span><span><i style="background:#14b8a6"></i> Alto</span><span><i style="background:#0f766e"></i> Muy alto</span><span id="mapMax"></span></div></div></section>
-    <section class="grid-3"><div class="card"><h2>Operaciones por provincia</h2><div class="chart-wrap sm"><canvas id="provinceChart"></canvas></div></div><div class="card"><h2>Distribución por banco</h2><div class="chart-wrap sm"><canvas id="bankChart"></canvas></div></div><div class="card"><h2>Segmento VIS / VIP</h2><div class="chart-wrap sm"><canvas id="segmentChart"></canvas></div></div></section>
-    <section class="grid"><div class="card"><h2>Top cantones por operaciones</h2><div class="chart-wrap sm"><canvas id="cantonChart"></canvas></div></div><div class="card"><h2>Detalle resumido</h2><div class="table-wrap"><table><thead><tr><th>Provincia</th><th>Cantón</th><th>Banco</th><th>Gobierno</th><th>Ops.</th><th>Monto crédito</th><th>Monto garantía</th><th>Aporte Gobierno</th></tr></thead><tbody id="summaryBody"></tbody></table></div></div></section>
+
+    <section class="kpis">
+      <div class="kpi"><span>Total operaciones</span><strong id="kpiOps">0</strong><small>Créditos colocados</small></div>
+      <div class="kpi"><span>Monto crédito</span><strong id="kpiCredito">$0</strong><small>Suma del monto de crédito</small></div>
+      <div class="kpi"><span>Aporte Gobierno</span><strong id="kpiAporte">$0</strong><small>Suma del aporte estatal</small></div>
+      <div class="kpi"><span>Monto garantía</span><strong id="kpiGarantia">$0</strong><small>Suma del monto de garantía</small></div>
+    </section>
+
+    <section class="grid">
+      <div class="card"><h2>Línea de tiempo mensual de créditos colocados</h2><div class="chart-wrap"><canvas id="timelineChart"></canvas></div></div>
+      <div class="card"><h2>Mapa por provincia</h2><div id="map"></div><div class="map-legend" id="mapLegend"></div></div>
+    </section>
+
+    <section class="grid-3">
+      <div class="card"><h2>Operaciones por provincia</h2><div class="chart-wrap sm"><canvas id="provinceChart"></canvas></div></div>
+      <div class="card"><h2>Distribución por banco</h2><div class="chart-wrap sm"><canvas id="bankChart"></canvas></div></div>
+      <div class="card"><h2>Segmento VIS / VIP</h2><div class="chart-wrap sm"><canvas id="segmentChart"></canvas></div></div>
+    </section>
+
+    <section class="grid">
+      <div class="card"><h2>Top cantones por operaciones</h2><div class="chart-wrap sm"><canvas id="cantonChart"></canvas></div></div>
+      <div class="card"><h2>Detalle resumido</h2><div class="table-wrap"><table><thead><tr><th>Provincia</th><th>Cantón</th><th>Banco</th><th>Ops.</th><th>Monto crédito</th><th>Aporte Gobierno</th></tr></thead><tbody id="summaryBody"></tbody></table></div></div>
+    </section>
   </main>
+
 <script>
-const SHEET_ID='1IwEFvDLJkc7YDawNDdlWbNkkrAO6_EZ_czQmChfYVVc';
-const GID='0';
-const CSV_URL=`https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=${GID}`;
-const GEOJSON_URL='./provincias_ecuador_normalizado.geojson';
-let rawData=[], filteredData=[], charts={}, map, geoLayer, geojsonData;
-const $=id=>document.getElementById(id);
-const moneyFmt=new Intl.NumberFormat('en-US',{style:'currency',currency:'USD',minimumFractionDigits:0,maximumFractionDigits:0});
-const numFmt=new Intl.NumberFormat('es-EC');
-const REQUIRED=['FECHA','BANCO','OPERACION','PROVINCIA','CANTON','SEXO','MONTO_CREDITO','MONTO_GARANTIA','SEGMENTO','APORTE_ESTADO','GOBIERNO'];
-function normalizeText(v){return String(v??'').trim().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\s+/g,' ').toUpperCase()}
-function cleanKey(v){return normalizeText(v).replace(/[^A-Z0-9_]/g,'')}
-function parseMoney(v){
-  if(v===null||v===undefined)return 0; let s=String(v).trim(); if(!s||normalizeText(s)==='NA')return 0;
-  s=s.replace(/\u00a0/g,'').replace(/[^0-9,.-]/g,''); if(!s||s==='-'||s==='.')return 0;
-  const neg=(s.match(/-/g)||[]).length%2===1; s=s.replace(/-/g,'');
-  const lc=s.lastIndexOf(','), ld=s.lastIndexOf('.');
-  if(lc>-1&&ld>-1){ if(lc>ld){s=s.replace(/\./g,'').replace(',', '.')} else {s=s.replace(/,/g,'')} }
-  else if(lc>-1){ const dec=s.length-lc-1; s=(dec>0&&dec<=2)?s.replace(',', '.'):s.replace(/,/g,'') }
-  else if(ld>-1){ const parts=s.split('.'); if(parts.length>2){ const last=parts.pop(); s=parts.join('')+'.'+last } }
-  const n=Number(s); return Number.isFinite(n)?(neg?-n:n):0;
-}
-function parseDate(v){
-  if(v instanceof Date&&!isNaN(v)) return new Date(v.getFullYear(),v.getMonth(),v.getDate());
-  if(v===null||v===undefined)return null; const s=String(v).trim(); if(!s)return null;
-  const m=s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})/); if(m){let d=+m[1], mo=+m[2], y=+m[3]; if(y<100)y+=2000; const dt=new Date(y,mo-1,d); if(dt.getFullYear()===y&&dt.getMonth()===mo-1&&dt.getDate()===d)return dt;}
-  const iso=s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/); if(iso){const dt=new Date(+iso[1],+iso[2]-1,+iso[3]); if(!isNaN(dt))return dt;}
-  return null;
-}
-function toISODate(d){const z=n=>String(n).padStart(2,'0');return `${d.getFullYear()}-${z(d.getMonth()+1)}-${z(d.getDate())}`}
-function monthKey(d){return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`}
-function monthLabel(k){const [y,m]=k.split('-').map(Number);return new Date(y,m-1,1).toLocaleDateString('es-EC',{month:'short',year:'numeric'}).replace('.','')}
-function parseCSV(text){const rows=[];let row=[],cur='',q=false;for(let i=0;i<text.length;i++){const c=text[i],n=text[i+1];if(c==='"'&&q&&n==='"'){cur+='"';i++}else if(c==='"'){q=!q}else if(c===','&&!q){row.push(cur);cur=''}else if((c==='\n'||c==='\r')&&!q){if(cur!==''||row.length){row.push(cur);rows.push(row);row=[];cur=''}if(c==='\r'&&n==='\n')i++}else cur+=c}if(cur!==''||row.length){row.push(cur);rows.push(row)}return rows.filter(r=>r.some(c=>String(c).trim()!==''))}
-function rowsToObjects(rows){
-  const headers=(rows[0]||[]).map(h=>cleanKey(h)); const idx={}; headers.forEach((h,i)=>{if(h)idx[h]=i});
-  const alias={GOBIERNO:['GOBIERNO','GOBIERNO_'],APORTE_ESTADO:['APORTE_ESTADO','APORTEESTADO','APORTE_ESTA','APORTEESTA'],MONTO_GARANTIA:['MONTO_GARANTIA','MONTOGARANTIA','MONTO_GARAI','MONTOGARAI'],MONTO_CREDITO:['MONTO_CREDITO','MONTOCREDITO','MONTO_CREDI','MONTOCREDI'],CANTON:['CANTON'],OPERACION:['OPERACION']};
-  function col(name){ const keys=alias[name]||[name]; for(const k of keys){const ck=cleanKey(k); if(idx[ck]!==undefined)return idx[ck]} return -1; }
-  const c={fecha:col('FECHA'),banco:col('BANCO'),operacion:col('OPERACION'),provincia:col('PROVINCIA'),canton:col('CANTON'),sexo:col('SEXO'),credito:col('MONTO_CREDITO'),garantia:col('MONTO_GARANTIA'),segmento:col('SEGMENTO'),aporte:col('APORTE_ESTADO'),gobierno:col('GOBIERNO')};
-  const faltan=[]; ['fecha','banco','provincia','canton','credito','garantia','aporte','gobierno'].forEach(k=>{if(c[k]<0)faltan.push(k)}); if(faltan.length)throw new Error('No se encontraron columnas requeridas: '+faltan.join(', '));
-  return rows.slice(1).map(r=>{const fecha=parseDate(r[c.fecha]); return {fecha,fechaISO:fecha?toISODate(fecha):'',banco:String(r[c.banco]??'').trim(),operacion:c.operacion>=0?String(r[c.operacion]??'').trim():'',provincia:String(r[c.provincia]??'').trim(),canton:String(r[c.canton]??'').trim(),sexo:c.sexo>=0?String(r[c.sexo]??'').trim():'',credito:parseMoney(r[c.credito]),garantia:parseMoney(r[c.garantia]),segmento:c.segmento>=0?String(r[c.segmento]??'').trim():'',aporte:parseMoney(r[c.aporte]),gobierno:String(r[c.gobierno]??'').trim()};}).filter(d=>d.fecha&&d.provincia&&d.canton&&d.banco);
-}
-function uniqueSorted(arr){return [...new Set(arr.filter(Boolean))].sort((a,b)=>a.localeCompare(b,'es'))}
-function escapeHtml(s){return String(s).replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]))}
-function setOptions(sel,values,label){const cur=sel.value;sel.innerHTML=`<option value="">${label}</option>`+values.map(v=>`<option value="${escapeHtml(v)}">${escapeHtml(v)}</option>`).join('');if(values.includes(cur))sel.value=cur}
-async function loadData(){showError('');$('loader').style.display='flex';try{const res=await fetch(CSV_URL+'&cacheBust='+Date.now(),{cache:'no-store'});if(!res.ok)throw new Error('No se pudo leer la hoja pública de Google Sheets.');const csv=await res.text();rawData=rowsToObjects(parseCSV(csv)); if(!rawData.length)throw new Error('La hoja no devolvió registros válidos.'); setupDateLimits(true); populateFilters(); await setupMap(); applyFilters(); $('lastUpdate').textContent='Actualizado: '+new Date().toLocaleString('es-EC')}catch(e){console.error(e);showError(e.message||'Error al cargar datos.')}finally{$('loader').style.display='none'}}
-function validDates(){return rawData.map(d=>d.fecha).filter(Boolean).sort((a,b)=>a-b)}
-function setupDateLimits(force=false){const dates=validDates();if(!dates.length)return;const min=dates[0],max=dates[dates.length-1];$('startDate').min=$('endDate').min=toISODate(min);$('startDate').max=$('endDate').max=toISODate(max);const sd=parseDate($('startDate').value), ed=parseDate($('endDate').value); if(force||!sd||!ed||sd<min||sd>max||ed<min||ed>max||sd>ed){$('startDate').value=toISODate(min);$('endDate').value=toISODate(max)}}
-function populateFilters(){setOptions($('provinciaFilter'),uniqueSorted(rawData.map(d=>d.provincia)),'Todas');setOptions($('bancoFilter'),uniqueSorted(rawData.map(d=>d.banco)),'Todos');setOptions($('gobiernoFilter'),uniqueSorted(rawData.map(d=>d.gobierno)),'Todos');updateCantonOptions()}
-function updateCantonOptions(){const p=$('provinciaFilter').value;const base=p?rawData.filter(d=>d.provincia===p):rawData;setOptions($('cantonFilter'),uniqueSorted(base.map(d=>d.canton)),'Todos')}
-function applyFilters(){const p=$('provinciaFilter').value,c=$('cantonFilter').value,b=$('bancoFilter').value,g=$('gobiernoFilter').value;let sd=parseDate($('startDate').value),ed=parseDate($('endDate').value);if(sd&&ed&&sd>ed){const tmp=sd;sd=ed;ed=tmp;$('startDate').value=toISODate(sd);$('endDate').value=toISODate(ed)}if(ed)ed=new Date(ed.getFullYear(),ed.getMonth(),ed.getDate(),23,59,59);filteredData=rawData.filter(d=>(!p||d.provincia===p)&&(!c||d.canton===c)&&(!b||d.banco===b)&&(!g||d.gobierno===g)&&(!sd||d.fecha>=sd)&&(!ed||d.fecha<=ed));updateKPIs();updateCharts();updateMap();updateTable()}
-function sum(data,key){return data.reduce((a,d)=>a+(Number(d[key])||0),0)}
-function updateKPIs(){$('kpiOps').textContent=numFmt.format(filteredData.length);$('kpiCredito').textContent=moneyFmt.format(sum(filteredData,'credito'));$('kpiAporte').textContent=moneyFmt.format(sum(filteredData,'aporte'));$('kpiGarantia').textContent=moneyFmt.format(sum(filteredData,'garantia'))}
-function groupCount(data,key){const m=new Map();data.forEach(d=>{const k=d[key]||'Sin dato';m.set(k,(m.get(k)||0)+1)});return [...m.entries()].map(([label,value])=>({label,value})).sort((a,b)=>b.value-a.value)}
-function makeChart(id,type,labels,datasets,opts={}){if(charts[id])charts[id].destroy();charts[id]=new Chart($(id),{type,data:{labels,datasets},options:{responsive:true,maintainAspectRatio:false,indexAxis:opts.indexAxis||'x',plugins:{legend:{display:type==='doughnut',position:'bottom'},tooltip:{callbacks:{label:ctx=>`${ctx.dataset.label||ctx.label}: ${numFmt.format(ctx.raw??0)}`}}},scales:type==='doughnut'?{}:{x:{grid:{display:false},ticks:{autoSkip:false,maxRotation:45,minRotation:0,callback:function(v){const label=this.getLabelForValue(v);return label&&label.length>22?label.slice(0,22)+'…':label}}},y:{beginAtZero:true,ticks:{callback:v=>numFmt.format(v)}}}}})}
-function updateCharts(){const monthly=new Map();filteredData.forEach(d=>{const k=monthKey(d.fecha);monthly.set(k,(monthly.get(k)||0)+1)});const mKeys=[...monthly.keys()].sort();makeChart('timelineChart','line',mKeys.map(monthLabel),[{label:'Operaciones',data:mKeys.map(k=>monthly.get(k)),tension:.32,fill:true,pointRadius:2,borderWidth:3}],{});const prov=groupCount(filteredData,'provincia').slice(0,12);makeChart('provinceChart','bar',prov.map(x=>x.label),[{label:'Operaciones',data:prov.map(x=>x.value)}],{indexAxis:'y'});const banks=groupCount(filteredData,'banco').slice(0,8);makeChart('bankChart','bar',banks.map(x=>x.label),[{label:'Operaciones',data:banks.map(x=>x.value)}],{indexAxis:'y'});const seg=groupCount(filteredData,'segmento');makeChart('segmentChart','doughnut',seg.map(x=>x.label),[{label:'Operaciones',data:seg.map(x=>x.value)}],{});const cant=groupCount(filteredData,'canton').slice(0,10);makeChart('cantonChart','bar',cant.map(x=>x.label),[{label:'Operaciones',data:cant.map(x=>x.value)}],{indexAxis:'y'})}
-async function setupMap(){if(!map){map=L.map('map',{zoomControl:false,scrollWheelZoom:false}).setView([-1.6,-78.6],6);L.control.zoom({position:'bottomright'}).addTo(map);L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'&copy; OpenStreetMap'}).addTo(map)}if(!geojsonData){try{const res=await fetch(GEOJSON_URL,{cache:'no-store'});if(res.ok)geojsonData=await res.json()}catch(e){console.warn(e)}}}
-function featureName(f){const p=f.properties||{};return p.provincia||p.PROVINCIA||p.DPA_DESPRO||p.NOMBRE||p.NAME_1||p.name||''}
-function colorByValue(v,max){if(!v)return '#e2e8f0';const t=max?v/max:0; if(t>.75)return '#0f766e'; if(t>.5)return '#14b8a6'; if(t>.25)return '#facc15'; return '#fb923c'}
-function updateMap(){if(!map||!geojsonData)return;const counts=new Map();filteredData.forEach(d=>counts.set(normalizeText(d.provincia),(counts.get(normalizeText(d.provincia))||0)+1));const max=Math.max(0,...counts.values());$('mapMax').textContent=`Máximo: ${numFmt.format(max)} operaciones`;if(geoLayer)geoLayer.remove();geoLayer=L.geoJSON(geojsonData,{style:f=>{const v=counts.get(normalizeText(featureName(f)))||0;return{color:'#fff',weight:1,fillColor:colorByValue(v,max),fillOpacity:.74}},onEachFeature:(f,l)=>{const name=featureName(f);const v=counts.get(normalizeText(name))||0;l.bindTooltip(`<b>${name}</b><br>${numFmt.format(v)} operaciones`,{sticky:true})}}).addTo(map);try{map.fitBounds(geoLayer.getBounds(),{padding:[10,10]})}catch(e){}setTimeout(()=>map.invalidateSize(),150)}
-function updateTable(){const m=new Map();filteredData.forEach(d=>{const k=[d.provincia,d.canton,d.banco,d.gobierno].join('|');if(!m.has(k))m.set(k,{provincia:d.provincia,canton:d.canton,banco:d.banco,gobierno:d.gobierno,ops:0,credito:0,garantia:0,aporte:0});const x=m.get(k);x.ops++;x.credito+=d.credito;x.garantia+=d.garantia;x.aporte+=d.aporte});const rows=[...m.values()].sort((a,b)=>b.ops-a.ops).slice(0,150);$('summaryBody').innerHTML=rows.map(r=>`<tr><td>${escapeHtml(r.provincia)}</td><td>${escapeHtml(r.canton)}</td><td>${escapeHtml(r.banco)}</td><td>${escapeHtml(r.gobierno)}</td><td>${numFmt.format(r.ops)}</td><td>${moneyFmt.format(r.credito)}</td><td>${moneyFmt.format(r.garantia)}</td><td>${moneyFmt.format(r.aporte)}</td></tr>`).join('')||'<tr><td colspan="8">No hay datos para los filtros seleccionados.</td></tr>'}
-function resetFilters(){['provinciaFilter','bancoFilter','gobiernoFilter'].forEach(id=>$(id).value='');updateCantonOptions();$('cantonFilter').value='';setupDateLimits(true);applyFilters()}
-function showError(msg){const b=$('errorBox');b.style.display=msg?'block':'none';b.textContent=msg}
-['provinciaFilter','bancoFilter','gobiernoFilter','startDate','endDate'].forEach(id=>$(id).addEventListener('change',()=>{if(id==='provinciaFilter')updateCantonOptions();applyFilters()}));$('cantonFilter').addEventListener('change',applyFilters);loadData();
+  // Hoja pública de Google Sheets. Si cambias de hoja, ajusta SHEET_ID y GID.
+  const SHEET_ID = '1IwEFvDLJkc7YDawNDdlWbNkkrAO6_EZ_czQmChfYVVc';
+  const GID = '0';
+  const GVIZ_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&gid=${GID}&headers=1`;
+  const CSV_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=${GID}`;
+  const GEOJSON_URL = './provincias_ecuador_normalizado.geojson';
+
+  // Estructura real de la hoja:
+  // A FECHA, B BANCO, C OPERACION, D PROVINCIA, E CANTON, F SEXO,
+  // G MONTO_CREDITO, H MONTO_GARANTIA, I SEGMENTO, J APORTE_ESTADO, K GOBIERNO
+  const COL = {
+    fecha: 0,
+    banco: 1,
+    operacion: 2,
+    provincia: 3,
+    canton: 4,
+    sexo: 5,
+    credito: 6,
+    garantia: 7,
+    segmento: 8,
+    aporte: 9,
+    gobierno: 10
+  };
+
+  let rawData = [];
+  let filteredData = [];
+  let charts = {};
+  let map, geoLayer, geojsonData;
+  let firstLoad = true;
+
+  const $ = id => document.getElementById(id);
+  const moneyFmt = new Intl.NumberFormat('en-US',{style:'currency',currency:'USD',maximumFractionDigits:0});
+  const numFmt = new Intl.NumberFormat('es-EC');
+
+  function normalizeText(v){
+    return String(v ?? '').trim().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\s+/g,' ').toUpperCase();
+  }
+
+  function escapeHtml(s){
+    return String(s ?? '').replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));
+  }
+
+  function parseMoney(v){
+    if(v === null || v === undefined || v === '') return 0;
+    if(typeof v === 'number') return Number.isFinite(v) ? v : 0;
+    let s = String(v).trim();
+    if(!s || normalizeText(s) === 'NA' || normalizeText(s) === 'N/A') return 0;
+
+    // Soporta: $54,695.48 | 54.695,48 | 54695.48 | 54695,48
+    s = s.replace(/[^0-9,.-]/g,'');
+    if(!s || s === '-' || s === '.') return 0;
+
+    const lastComma = s.lastIndexOf(',');
+    const lastDot = s.lastIndexOf('.');
+
+    if(lastComma > -1 && lastDot > -1){
+      if(lastComma > lastDot){
+        // Formato latino: 54.695,48
+        s = s.replace(/\./g,'').replace(',', '.');
+      }else{
+        // Formato US: 54,695.48
+        s = s.replace(/,/g,'');
+      }
+    }else if(lastComma > -1){
+      const decimals = s.length - lastComma - 1;
+      s = decimals > 0 && decimals <= 2 ? s.replace(',', '.') : s.replace(/,/g,'');
+    }else if(lastDot > -1){
+      const parts = s.split('.');
+      if(parts.length > 2){
+        const decimals = parts.at(-1).length;
+        s = decimals > 0 && decimals <= 2 ? parts.slice(0,-1).join('') + '.' + parts.at(-1) : parts.join('');
+      }
+    }
+
+    const n = Number(s);
+    return Number.isFinite(n) ? n : 0;
+  }
+
+  function parseGvizDate(v, f){
+    if(v instanceof Date && !isNaN(v)) return v;
+
+    if(typeof v === 'string'){
+      let m = v.match(/^Date\((\d{4}),(\d{1,2}),(\d{1,2})/);
+      if(m) return new Date(Number(m[1]), Number(m[2]), Number(m[3]));
+    }
+
+    // En Google Visualization API a veces la fecha viene como valor formateado.
+    return parseDate(f ?? v);
+  }
+
+  function parseDate(v){
+    if(v === null || v === undefined || v === '') return null;
+    if(v instanceof Date && !isNaN(v)) return v;
+
+    if(typeof v === 'number'){
+      // Serial de Excel/Sheets.
+      if(v > 20000 && v < 60000){
+        const d = new Date(Math.round((v - 25569) * 86400 * 1000));
+        return isNaN(d) ? null : d;
+      }
+      return null;
+    }
+
+    const s = String(v).trim();
+    if(!s) return null;
+
+    let m = s.match(/^Date\((\d{4}),(\d{1,2}),(\d{1,2})/);
+    if(m) return new Date(Number(m[1]), Number(m[2]), Number(m[3]));
+
+    // Formatos esperados desde Sheets: 30/4/2026, 4/30/2026, 2026-04-30.
+    m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+    if(m){
+      let a = Number(m[1]), b = Number(m[2]), y = Number(m[3]);
+      let day, month;
+      if(a > 12){
+        day = a; month = b;            // dd/mm/yyyy
+      }else if(b > 12){
+        day = b; month = a;            // mm/dd/yyyy
+      }else{
+        // Para esta base ecuatoriana se prioriza día/mes.
+        day = a; month = b;
+      }
+      const d = new Date(y, month - 1, day);
+      return (d.getFullYear() === y && d.getMonth() === month - 1 && d.getDate() === day) ? d : null;
+    }
+
+    m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+    if(m){
+      const d = new Date(Number(m[1]), Number(m[2])-1, Number(m[3]));
+      return isNaN(d) ? null : d;
+    }
+
+    return null;
+  }
+
+  function toISODate(d){
+    const z = n => String(n).padStart(2,'0');
+    return `${d.getFullYear()}-${z(d.getMonth()+1)}-${z(d.getDate())}`;
+  }
+
+  function monthKey(d){return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`}
+
+  function monthLabel(key){
+    const [y,m]=key.split('-').map(Number);
+    return new Date(y,m-1,1).toLocaleDateString('es-EC',{month:'short',year:'numeric'}).replace('.','');
+  }
+
+  function parseCSV(text){
+    const rows=[]; let row=[], cur='', inQuotes=false;
+    for(let i=0;i<text.length;i++){
+      const c=text[i], n=text[i+1];
+      if(c==='"' && inQuotes && n==='"'){cur+='"'; i++;}
+      else if(c==='"'){inQuotes=!inQuotes;}
+      else if(c===',' && !inQuotes){row.push(cur); cur='';}
+      else if((c==='\n' || c==='\r') && !inQuotes){
+        if(cur!=='' || row.length){row.push(cur); rows.push(row); row=[]; cur='';}
+        if(c==='\r' && n==='\n') i++;
+      } else cur+=c;
+    }
+    if(cur!=='' || row.length){row.push(cur); rows.push(row)}
+    return rows;
+  }
+
+  function rowToObjectFromArray(r){
+    const fecha = parseDate(r[COL.fecha]);
+    return buildObject({
+      fecha,
+      banco: r[COL.banco],
+      operacion: r[COL.operacion],
+      provincia: r[COL.provincia],
+      canton: r[COL.canton],
+      sexo: r[COL.sexo],
+      credito: r[COL.credito],
+      garantia: r[COL.garantia],
+      segmento: r[COL.segmento],
+      aporte: r[COL.aporte],
+      gobierno: r[COL.gobierno]
+    });
+  }
+
+  function buildObject(x){
+    const fecha = x.fecha instanceof Date && !isNaN(x.fecha) ? x.fecha : null;
+    return {
+      fecha,
+      fechaISO: fecha ? toISODate(fecha) : '',
+      banco: String(x.banco ?? '').trim(),
+      operacion: String(x.operacion ?? '').trim(),
+      provincia: String(x.provincia ?? '').trim(),
+      canton: String(x.canton ?? '').trim(),
+      sexo: String(x.sexo ?? '').trim(),
+      credito: parseMoney(x.credito),
+      garantia: parseMoney(x.garantia),
+      segmento: String(x.segmento ?? '').trim(),
+      aporte: parseMoney(x.aporte),
+      gobierno: String(x.gobierno ?? '').trim()
+    };
+  }
+
+  function gvizToObjects(text){
+    const match = text.match(/google\.visualization\.Query\.setResponse\(([\s\S]*)\);?$/);
+    if(!match) throw new Error('Google Sheets no devolvió datos en formato válido.');
+    const json = JSON.parse(match[1]);
+    const rows = (json.table && json.table.rows) ? json.table.rows : [];
+
+    return rows.map(row => {
+      const c = row.c || [];
+      const cell = i => c[i] || {};
+      const fecha = parseGvizDate(cell(COL.fecha).v, cell(COL.fecha).f);
+      return buildObject({
+        fecha,
+        banco: cell(COL.banco).v ?? cell(COL.banco).f,
+        operacion: cell(COL.operacion).v ?? cell(COL.operacion).f,
+        provincia: cell(COL.provincia).v ?? cell(COL.provincia).f,
+        canton: cell(COL.canton).v ?? cell(COL.canton).f,
+        sexo: cell(COL.sexo).v ?? cell(COL.sexo).f,
+        credito: cell(COL.credito).v ?? cell(COL.credito).f,
+        garantia: cell(COL.garantia).v ?? cell(COL.garantia).f,
+        segmento: cell(COL.segmento).v ?? cell(COL.segmento).f,
+        aporte: cell(COL.aporte).v ?? cell(COL.aporte).f,
+        gobierno: cell(COL.gobierno).v ?? cell(COL.gobierno).f
+      });
+    }).filter(validRecord);
+  }
+
+  function csvToObjects(text){
+    const rows = parseCSV(text);
+    return rows.slice(1).map(rowToObjectFromArray).filter(validRecord);
+  }
+
+  function validRecord(d){
+    return d && d.fecha && d.provincia && d.canton && d.banco;
+  }
+
+  async function fetchData(){
+    // 1) Primero intenta Google Visualization API porque conserva mejor números y fechas.
+    try{
+      const res = await fetch(GVIZ_URL + '&cacheBust=' + Date.now());
+      if(res.ok){
+        const txt = await res.text();
+        const data = gvizToObjects(txt);
+        if(data.length) return data;
+      }
+    }catch(e){
+      console.warn('GViz no disponible, se usará CSV:', e);
+    }
+
+    // 2) Respaldo por CSV.
+    const res = await fetch(CSV_URL + '&cacheBust=' + Date.now());
+    if(!res.ok) throw new Error('No se pudo leer la hoja. Verifica que esté publicada o compartida públicamente.');
+    return csvToObjects(await res.text());
+  }
+
+  function uniqueSorted(arr){return [...new Set(arr.filter(Boolean))].sort((a,b)=>a.localeCompare(b,'es'))}
+
+  function setOptions(select, values, allLabel){
+    const current = select.value;
+    select.innerHTML = `<option value="">${allLabel}</option>` + values.map(v => `<option value="${escapeHtml(v)}">${escapeHtml(v)}</option>`).join('');
+    if(values.includes(current)) select.value = current;
+  }
+
+  async function loadData(){
+    showError('');
+    $('loader').style.display='flex';
+
+    try{
+      rawData = await fetchData();
+
+      if(!rawData.length) throw new Error('La hoja no devolvió registros válidos.');
+
+      rawData.sort((a,b)=>a.fecha-b.fecha);
+
+      setupDateLimits();
+      populateFilters();
+      await setupMap();
+      applyFilters();
+
+      $('lastUpdate').textContent = 'Actualizado: ' + new Date().toLocaleString('es-EC');
+      firstLoad = false;
+
+      // Validación interna en consola para contrastar.
+      console.info('Registros cargados:', rawData.length);
+      console.info('Totales base:', {
+        credito: sum(rawData,'credito'),
+        garantia: sum(rawData,'garantia'),
+        aporte: sum(rawData,'aporte'),
+        minFecha: toISODate(rawData[0].fecha),
+        maxFecha: toISODate(rawData[rawData.length-1].fecha)
+      });
+    }catch(err){
+      console.error(err);
+      showError(err.message || 'Error al cargar datos.');
+    }finally{
+      $('loader').style.display='none';
+    }
+  }
+
+  function setupDateLimits(){
+    const dates = rawData.map(d=>d.fecha).filter(Boolean).sort((a,b)=>a-b);
+    if(!dates.length) return;
+
+    const minISO = toISODate(dates[0]);
+    const maxISO = toISODate(dates[dates.length-1]);
+
+    $('startDate').min = minISO;
+    $('startDate').max = maxISO;
+    $('endDate').min = minISO;
+    $('endDate').max = maxISO;
+
+    const curStart = $('startDate').value;
+    const curEnd = $('endDate').value;
+    const invalidCurrent = !curStart || !curEnd || curStart < minISO || curStart > maxISO || curEnd < minISO || curEnd > maxISO || curStart > curEnd;
+
+    // En la primera carga siempre se muestra todo el periodo disponible.
+    // En actualizaciones posteriores se conserva el filtro si sigue siendo válido.
+    if(firstLoad || invalidCurrent){
+      $('startDate').value = minISO;
+      $('endDate').value = maxISO;
+    }
+  }
+
+  function populateFilters(){
+    setOptions($('provinciaFilter'), uniqueSorted(rawData.map(d=>d.provincia)), 'Todas');
+    setOptions($('bancoFilter'), uniqueSorted(rawData.map(d=>d.banco)), 'Todos');
+    setOptions($('gobiernoFilter'), uniqueSorted(rawData.map(d=>d.gobierno)), 'Todos');
+    updateCantonOptions();
+  }
+
+  function updateCantonOptions(){
+    const p = $('provinciaFilter').value;
+    const base = p ? rawData.filter(d=>d.provincia===p) : rawData;
+    setOptions($('cantonFilter'), uniqueSorted(base.map(d=>d.canton)), 'Todos');
+  }
+
+  function applyFilters(){
+    let sdValue = $('startDate').value;
+    let edValue = $('endDate').value;
+
+    // Evita rangos invertidos, que fueron la causa de pantallas en 0.
+    if(sdValue && edValue && sdValue > edValue){
+      const tmp = sdValue;
+      sdValue = edValue;
+      edValue = tmp;
+      $('startDate').value = sdValue;
+      $('endDate').value = edValue;
+    }
+
+    const p = $('provinciaFilter').value;
+    const c = $('cantonFilter').value;
+    const b = $('bancoFilter').value;
+    const g = $('gobiernoFilter').value;
+    const sd = sdValue ? new Date(sdValue+'T00:00:00') : null;
+    const ed = edValue ? new Date(edValue+'T23:59:59') : null;
+
+    filteredData = rawData.filter(d =>
+      (!p || d.provincia === p) &&
+      (!c || d.canton === c) &&
+      (!b || d.banco === b) &&
+      (!g || d.gobierno === g) &&
+      (!sd || d.fecha >= sd) &&
+      (!ed || d.fecha <= ed)
+    );
+
+    updateKPIs();
+    updateCharts();
+    updateMap();
+    updateTable();
+  }
+
+  function updateKPIs(){
+    $('kpiOps').textContent = numFmt.format(filteredData.length);
+    $('kpiCredito').textContent = moneyFmt.format(sum(filteredData,'credito'));
+    $('kpiAporte').textContent = moneyFmt.format(sum(filteredData,'aporte'));
+    $('kpiGarantia').textContent = moneyFmt.format(sum(filteredData,'garantia'));
+  }
+
+  function sum(data,key){return data.reduce((a,d)=>a+(Number(d[key])||0),0)}
+
+  function groupCount(data,key){
+    const m = new Map();
+    data.forEach(d=>{
+      const k=d[key]||'Sin dato';
+      m.set(k,(m.get(k)||0)+1);
+    });
+    return [...m.entries()].map(([label,value])=>({label,value})).sort((a,b)=>b.value-a.value);
+  }
+
+  function makeChart(id,type,labels,datasets,options={}){
+    if(charts[id]) charts[id].destroy();
+
+    const horizontal = options.horizontal === true;
+    const isDoughnut = type === 'doughnut';
+
+    charts[id] = new Chart($(id),{
+      type,
+      data:{labels,datasets},
+      options:{
+        responsive:true,
+        maintainAspectRatio:false,
+        indexAxis: horizontal ? 'y' : 'x',
+        interaction:{mode:'nearest',intersect:false},
+        plugins:{
+          legend:{display:datasets.length>1 || isDoughnut,position:'bottom'},
+          tooltip:{callbacks:{label:ctx=>{
+            const v = ctx.raw ?? 0;
+            return `${ctx.dataset.label || ctx.label}: ${options.money ? moneyFmt.format(v) : numFmt.format(v)}`;
+          }}}
+        },
+        scales: isDoughnut ? {} : (horizontal ? {
+          x:{beginAtZero:true,ticks:{callback:v=>options.money?moneyFmt.format(v):numFmt.format(v)}},
+          y:{type:'category',grid:{display:false},ticks:{autoSkip:false,callback:function(value){return this.getLabelForValue(value);}}}
+        } : {
+          x:{grid:{display:false},ticks:{autoSkip:true,maxRotation:45,minRotation:45}},
+          y:{beginAtZero:true,ticks:{callback:v=>options.money?moneyFmt.format(v):numFmt.format(v)}}
+        })
+      }
+    });
+  }
+
+  function updateCharts(){
+    const monthly = new Map();
+    filteredData.filter(d=>d.fecha).forEach(d=>{
+      const k=monthKey(d.fecha);
+      monthly.set(k,(monthly.get(k)||0)+1);
+    });
+
+    const monthKeys = [...monthly.keys()].sort();
+    makeChart('timelineChart','line',
+      monthKeys.map(monthLabel),
+      [{label:'Operaciones',data:monthKeys.map(k=>monthly.get(k)),tension:.32,fill:true,pointRadius:2}],
+      {}
+    );
+
+    const prov = groupCount(filteredData,'provincia').slice(0,12);
+    makeChart('provinceChart','bar',prov.map(x=>x.label),[{label:'Operaciones',data:prov.map(x=>x.value)}],{horizontal:true});
+
+    const banks = groupCount(filteredData,'banco').slice(0,8);
+    makeChart('bankChart','bar',banks.map(x=>x.label),[{label:'Operaciones',data:banks.map(x=>x.value)}],{horizontal:true});
+
+    const seg = groupCount(filteredData,'segmento');
+    makeChart('segmentChart','doughnut',seg.map(x=>x.label),[{label:'Operaciones',data:seg.map(x=>x.value)}],{});
+
+    const cant = groupCount(filteredData,'canton').slice(0,10);
+    makeChart('cantonChart','bar',cant.map(x=>x.label),[{label:'Operaciones',data:cant.map(x=>x.value)}],{horizontal:true});
+  }
+
+  async function setupMap(){
+    if(!map){
+      map = L.map('map',{zoomControl:false,scrollWheelZoom:false}).setView([-1.6,-78.6],6);
+      L.control.zoom({position:'bottomright'}).addTo(map);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'&copy; OpenStreetMap'}).addTo(map);
+    }
+    if(!geojsonData){
+      try{
+        const res = await fetch(GEOJSON_URL);
+        if(res.ok) geojsonData = await res.json();
+      }catch(e){
+        console.warn('No se pudo cargar el GeoJSON local',e);
+      }
+    }
+  }
+
+  function featureName(feature){
+    const p = feature.properties || {};
+    return p.provincia || p.PROVINCIA || p.DPA_DESPRO || p.NOMBRE || p.NAME_1 || p.name || '';
+  }
+
+  function colorByValue(v,max){
+    if(!v) return '#e2e8f0';
+    const t = max ? v/max : 0;
+    if(t>.75) return '#0f766e';
+    if(t>.5) return '#14b8a6';
+    if(t>.25) return '#facc15';
+    return '#fb923c';
+  }
+
+  function updateMap(){
+    if(!map || !geojsonData) return;
+    const counts = new Map();
+    filteredData.forEach(d=>{
+      const key = normalizeText(d.provincia);
+      counts.set(key,(counts.get(key)||0)+1);
+    });
+
+    const max = Math.max(1,...counts.values());
+
+    if(geoLayer) geoLayer.remove();
+    geoLayer = L.geoJSON(geojsonData,{
+      style:f=>{
+        const v=counts.get(normalizeText(featureName(f)))||0;
+        return {color:'#fff',weight:1,fillColor:colorByValue(v,max),fillOpacity:.72};
+      },
+      onEachFeature:(f,l)=>{
+        const name=featureName(f);
+        const v=counts.get(normalizeText(name))||0;
+        l.bindTooltip(`<b>${escapeHtml(name)}</b><br>${numFmt.format(v)} operaciones`,{sticky:true});
+      }
+    }).addTo(map);
+
+    try{map.fitBounds(geoLayer.getBounds(),{padding:[10,10]});}catch(e){}
+    updateMapLegend(max);
+    setTimeout(()=>map.invalidateSize(),150);
+  }
+
+  function updateMapLegend(max){
+    const el = $('mapLegend');
+    if(!el) return;
+    const ranges = [
+      {label:'0', color:'#e2e8f0'},
+      {label:'Bajo', color:'#fb923c'},
+      {label:'Medio', color:'#facc15'},
+      {label:'Alto', color:'#14b8a6'},
+      {label:'Muy alto', color:'#0f766e'}
+    ];
+    el.innerHTML = '<b>Escala:</b> ' + ranges.map(r => `<span class="legend-item"><span class="legend-swatch" style="background:${r.color}"></span>${r.label}</span>`).join('') + `<span>Máximo: ${numFmt.format(max)} operaciones</span>`;
+  }
+
+  function updateTable(){
+    const m = new Map();
+    filteredData.forEach(d=>{
+      const k=[d.provincia,d.canton,d.banco].join('|');
+      if(!m.has(k)) m.set(k,{provincia:d.provincia,canton:d.canton,banco:d.banco,ops:0,credito:0,aporte:0,garantia:0});
+      const x=m.get(k);
+      x.ops++;
+      x.credito+=d.credito;
+      x.aporte+=d.aporte;
+      x.garantia+=d.garantia;
+    });
+    const rows=[...m.values()].sort((a,b)=>b.ops-a.ops).slice(0,150);
+    $('summaryBody').innerHTML = rows.map(r=>`<tr><td>${escapeHtml(r.provincia)}</td><td>${escapeHtml(r.canton)}</td><td>${escapeHtml(r.banco)}</td><td>${numFmt.format(r.ops)}</td><td>${moneyFmt.format(r.credito)}</td><td>${moneyFmt.format(r.aporte)}</td></tr>`).join('') || '<tr><td colspan="6">No hay datos para los filtros seleccionados.</td></tr>';
+  }
+
+  function resetFilters(){
+    $('provinciaFilter').value='';
+    $('bancoFilter').value='';
+    $('gobiernoFilter').value='';
+    updateCantonOptions();
+    $('cantonFilter').value='';
+
+    const dates = rawData.map(d=>d.fecha).filter(Boolean).sort((a,b)=>a-b);
+    if(dates.length){
+      $('startDate').value=toISODate(dates[0]);
+      $('endDate').value=toISODate(dates[dates.length-1]);
+    }
+    applyFilters();
+  }
+
+  function showError(msg){
+    const box=$('errorBox');
+    box.style.display=msg?'block':'none';
+    box.textContent=msg;
+  }
+
+  ['provinciaFilter','bancoFilter','gobiernoFilter','startDate','endDate'].forEach(id=>$(id).addEventListener('change',()=>{
+    if(id==='provinciaFilter') updateCantonOptions();
+    applyFilters();
+  }));
+  $('cantonFilter').addEventListener('change',applyFilters);
+
+  loadData();
+
+  // Actualización automática: 60 segundos. Conserva filtros válidos.
+  setInterval(loadData, 60000);
 </script>
 </body>
 </html>
