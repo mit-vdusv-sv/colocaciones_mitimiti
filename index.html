@@ -943,6 +943,7 @@
       // Márgenes específicos del formato Presidencia.
       const margin = {left:10, right:10, top:12, bottom:12};
       const contentW = pageW - margin.left - margin.right;
+      const centerX = (width) => (pageW - width) / 2;
 
       // La imagen debe estar en la misma carpeta del HTML con este nombre.
       const logoCandidates = ['./miti_miti.jpeg','./miti_miti.jpg','miti_miti.jpeg','miti_miti.jpg'];
@@ -982,9 +983,9 @@
       function addLogo(){
         if(logoInfo){
           // Se conserva la proporción real de la imagen para evitar distorsión.
-          const logoW = 43;
+          const logoW = 39;
           const logoH = logoW * (logoInfo.height / logoInfo.width);
-          doc.addImage(logoInfo.data, 'JPEG', pageW - 72, 12, logoW, logoH, undefined, 'FAST');
+          doc.addImage(logoInfo.data, 'JPEG', pageW - 67, 10, logoW, logoH, undefined, 'FAST');
         }
       }
 
@@ -1008,13 +1009,16 @@
         const lines = doc.splitTextToSize(String(text), contentW - 10);
         doc.text(lines, margin.left, y);
         doc.setTextColor(0,0,0);
-        return y + lines.length * 5.2 + 11;
+        return y + lines.length * 5.2 + 10;
       }
 
-      function addSubtitle(text, y){
-        setText([0,0,0], 'bold', 10.4);
-        doc.text(String(text), margin.left, y);
-        return y + 8;
+      function addSubtitle(text, y, opts={}){
+        setText([0,0,0], 'bold', opts.size || 10.4);
+        const width = opts.width || contentW;
+        const x = opts.x ?? margin.left;
+        const lines = doc.splitTextToSize(String(text), width);
+        doc.text(lines, x, y);
+        return y + lines.length * 4.6 + 4;
       }
 
       function addFuente(y, text='Fuente: Matriz Reporte de Colocaciones IFI´s'){
@@ -1029,7 +1033,7 @@
           head,
           body,
           margin:{
-            left: options.left ?? margin.left,
+            left: options.left ?? (options.tableWidth ? centerX(options.tableWidth) : margin.left),
             right: options.right ?? margin.right,
             top: margin.top,
             bottom: margin.bottom
@@ -1150,7 +1154,7 @@
 
         doc.setDrawColor(purple[0], purple[1], purple[2]);
         doc.setFillColor(purple[0], purple[1], purple[2]);
-        doc.setLineWidth(0.6);
+        doc.setLineWidth(0.75);
 
         let points = vals.map((v,i)=>{
           const px = x + i * step;
@@ -1162,7 +1166,7 @@
           doc.line(points[i-1].x, points[i-1].y, points[i].x, points[i].y);
         }
 
-        const valueStep = keys.length <= 24 ? 4 : Math.ceil(keys.length / 12);
+        const valueStep = keys.length <= 24 ? 5 : Math.ceil(keys.length / 9);
         setText([0,0,0], 'normal', 4.0);
         points.forEach((p,i)=>{
           doc.circle(p.x, p.y, 0.5, 'F');
@@ -1172,7 +1176,7 @@
           }
         });
 
-        const labelStep = keys.length <= 18 ? 3 : Math.ceil(keys.length / 10);
+        const labelStep = keys.length <= 18 ? 3 : Math.ceil(keys.length / 8);
         setText([0,0,0], 'normal', 4.5);
         keys.forEach((k,i)=>{
           if(i === 0 || i === keys.length - 1 || i % labelStep === 0){
@@ -1196,7 +1200,7 @@
 
       // Página 1
       addLogo();
-      let y = 54;
+      let y = 52;
       y = addTitle(`1. PROGRAMA TU CASA MITI-MITI – MIT - CORTE DE INFORMACIÓN AL ${cutText}`, y);
       y = addSubtitle(`1.1 ${subtitlePeriodo()}`, y);
 
@@ -1206,7 +1210,6 @@
         'Cartera\nHipotecaria\nGenerada',
         'Aporte Estado'
       ]], segBody, {
-        left:10,
         tableWidth:150,
         fontSize:8.6,
         headFontSize:8.2,
@@ -1217,9 +1220,9 @@
           3:{halign:'right',cellWidth:34}
         }
       });
-      y = addFuente(y + 4);
+      y = addFuente(y + 3);
 
-      y = addSubtitle(`1.2 INSTITUCIONES FINANCIERAS – ${subtitlePeriodo()}`, y + 7);
+      y = addSubtitle(`1.2 INSTITUCIONES FINANCIERAS – ${subtitlePeriodo()}`, y + 5, {size:10.1});
 
       const bankRows = groupBankSegmentPresidenciaLocal(filteredData).map(r=>{
         const obj = {0:r.values[0],1:r.values[1],2:r.values[2],3:r.values[3]};
@@ -1234,9 +1237,8 @@
         'Cartera\nHipotecaria\nGenerada por\nVIS & VIP',
         'Aporte Estado'
       ]], bankRows, {
-        left:10,
         tableWidth:150,
-        fontSize:7.25,
+        fontSize:7.15,
         headFontSize:7.0,
         cellPadding:0.92,
         columnStyles:{
@@ -1251,7 +1253,7 @@
       // Página 2
       doc.addPage();
       y = 18;
-      y = addSubtitle(`1.3 POR PROVINCIA – ${subtitlePeriodo()}`, y);
+      y = addSubtitle(`1.3 POR PROVINCIA – ${subtitlePeriodo()}`, y, {size:10.1});
 
       const provinceRows = groupProvinceSegmentPresidenciaLocal(filteredData);
       const provinceBody = provinceRows.map((r,i)=>({
@@ -1272,7 +1274,6 @@
       ],[
         'PROVINCIA','','',''
       ]], provinceBody, {
-        left:24,
         tableWidth:158,
         fontSize:8.55,
         headFontSize:8.35,
@@ -1286,8 +1287,8 @@
       });
       y = addFuente(y + 4);
 
-      y += 8;
-      y = addSubtitle('1.4 GRÁFICA DE EVOLUCIÓN DEL CRÉDITO MITI – MITI', y);
+      y += 5;
+      y = addSubtitle('1.4 GRÁFICA DE EVOLUCIÓN DEL CRÉDITO MITI – MITI', y, {size:10.1});
 
       const monthly = new Map();
       filteredData.filter(d=>d.fecha).forEach(d=>{
@@ -1297,17 +1298,17 @@
       const keys = [...monthly.keys()].sort();
       const vals = keys.map(k=>monthly.get(k));
 
-      const chartX = 10;
-      const chartY = Math.max(y + 26, 213);
-      const chartW = pageW - 20;
-      const chartH = 30;
+      const chartW = 186;
+      const chartX = centerX(chartW);
+      const chartY = Math.max(y + 15, 199);
+      const chartH = 36;
       drawEvolutionChart(chartX, chartY, chartW, chartH, keys, vals);
 
-      y = chartY + chartH + 15;
+      y = chartY + chartH + 14;
       y = addFuente(y, `Fuente: Matriz Reporte de Colocaciones IFI´s / corte: ${cutText.toLowerCase()}`);
 
       setText([0,0,0], 'italic', 6.7);
-      doc.text('Nota: La presente información corresponde al último mes caído.', margin.left, pageH - 18);
+      doc.text('Nota: La presente información corresponde al último mes caído.', margin.left, Math.min(y + 7, pageH - 20));
 
       setText([95,95,95], 'normal', 5.8);
       doc.text(`Generado: ${generatedAt}`, pageW - margin.right, pageH - 7, {align:'right'});
