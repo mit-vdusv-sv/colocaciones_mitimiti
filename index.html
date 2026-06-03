@@ -21,8 +21,8 @@
       --text:#172033;
       --muted:#667085;
       --line:#e6eaf2;
-      --primary:#0f766e;
-      --primary-2:#115e59;
+      --primary:#6f30a0;
+      --primary-2:#4b1f74;
       --accent:#eab308;
       --danger:#dc2626;
       --shadow:0 10px 28px rgba(15,23,42,.08);
@@ -38,7 +38,7 @@
     }
     .app{max-width:1440px;margin:0 auto;padding:18px}
     .topbar{
-      background:linear-gradient(135deg,#0f766e,#0b4f4a 62%,#183153);
+      background:linear-gradient(135deg,#6f30a0,#4b1f74 62%,#183153);
       color:white;
       border-radius:24px;
       padding:22px 24px;
@@ -52,7 +52,7 @@
     .title p{margin:7px 0 0;color:rgba(255,255,255,.82);font-size:14px}
     .status{display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:flex-end;font-size:13px;color:rgba(255,255,255,.84)}
     .pill{background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.18);border-radius:999px;padding:8px 12px;white-space:nowrap}
-    .refresh-btn{border:0;background:#fff;color:#0f766e;border-radius:999px;padding:9px 14px;font-weight:800;cursor:pointer;box-shadow:0 6px 14px rgba(0,0,0,.12)}
+    .refresh-btn{border:0;background:#fff;color:#6f30a0;border-radius:999px;padding:9px 14px;font-weight:800;cursor:pointer;box-shadow:0 6px 14px rgba(0,0,0,.12)}
     .report-btn{border:0;background:#eab308;color:#172033;border-radius:999px;padding:9px 14px;font-weight:900;cursor:pointer;box-shadow:0 6px 14px rgba(0,0,0,.12)}
     .report-format-select{width:auto;min-width:205px;height:38px;border:1px solid rgba(255,255,255,.25);background:rgba(255,255,255,.96);color:#172033;border-radius:999px;padding:0 12px;font-size:13px;font-weight:800;cursor:pointer;box-shadow:0 6px 14px rgba(0,0,0,.10)}
 
@@ -76,13 +76,14 @@
     .actions{display:flex;gap:8px;align-items:end}
     .clear-btn{width:100%;height:40px;border:1px solid var(--line);background:#f8fafc;border-radius:12px;font-weight:800;color:#334155;cursor:pointer}
 
-    .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-top:16px}
+    .kpis{display:grid;grid-template-columns:repeat(5,1fr);gap:14px;margin-top:16px}
     .kpi{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:16px;box-shadow:var(--shadow)}
     .kpi span{font-size:12px;color:var(--muted);font-weight:800;text-transform:uppercase;letter-spacing:.05em}
     .kpi strong{display:block;margin-top:8px;font-size:clamp(22px,2.6vw,32px);letter-spacing:-.04em}
     .kpi small{display:block;margin-top:6px;color:var(--muted)}
 
     .grid{display:grid;grid-template-columns:1.3fr .9fr;gap:14px;margin-top:14px}
+    .grid.full-width{grid-template-columns:1fr}
     .grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-top:14px}
     .card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:16px;min-width:0}
     .card h2{margin:0 0 12px;font-size:17px;letter-spacing:-.02em}
@@ -155,7 +156,8 @@
       <div class="kpi"><span>Total operaciones</span><strong id="kpiOps">0</strong><small>Créditos colocados</small></div>
       <div class="kpi"><span>Monto crédito</span><strong id="kpiCredito">$0</strong><small>Suma del monto de crédito</small></div>
       <div class="kpi"><span>Aporte Gobierno</span><strong id="kpiAporte">$0</strong><small>Suma del aporte estatal</small></div>
-      <div class="kpi"><span>Monto garantía</span><strong id="kpiGarantia">$0</strong><small>Suma del monto de garantía</small></div>
+      <div class="kpi"><span>Colocaciones VIS</span><strong id="kpiVIS">0</strong><small>Total segmento VIS</small></div>
+      <div class="kpi"><span>Colocaciones VIP</span><strong id="kpiVIP">0</strong><small>Total segmento VIP</small></div>
     </section>
 
     <section class="grid">
@@ -169,9 +171,8 @@
       <div class="card"><h2>Segmento VIS / VIP</h2><div class="chart-wrap sm"><canvas id="segmentChart"></canvas></div></div>
     </section>
 
-    <section class="grid">
+    <section class="grid full-width">
       <div class="card"><h2>Top cantones por operaciones</h2><div class="chart-wrap sm"><canvas id="cantonChart"></canvas></div></div>
-      <div class="card"><h2>Detalle resumido</h2><div class="table-wrap"><table><thead><tr><th>Provincia</th><th>Cantón</th><th>Banco</th><th>Ops.</th><th>Monto crédito</th><th>Aporte Gobierno</th></tr></thead><tbody id="summaryBody"></tbody></table></div></div>
     </section>
   </main>
 
@@ -541,14 +542,19 @@
     updateKPIs();
     updateCharts();
     updateMap();
-    updateTable();
+    // Se eliminó el recuadro de Detalle resumido del dashboard.
+    // updateTable();
   }
 
   function updateKPIs(){
     $('kpiOps').textContent = numFmt.format(filteredData.length);
     $('kpiCredito').textContent = moneyFmt.format(sum(filteredData,'credito'));
     $('kpiAporte').textContent = moneyFmt.format(sum(filteredData,'aporte'));
-    $('kpiGarantia').textContent = moneyFmt.format(sum(filteredData,'garantia'));
+    const seg = groupCount(filteredData,'segmento');
+    const vis = seg.filter(x=>normalizeText(x.label).includes('VIS')).reduce((a,x)=>a+x.value,0);
+    const vip = seg.filter(x=>normalizeText(x.label).includes('VIP')).reduce((a,x)=>a+x.value,0);
+    $('kpiVIS').textContent = numFmt.format(vis);
+    $('kpiVIP').textContent = numFmt.format(vip);
   }
 
   function sum(data,key){return data.reduce((a,d)=>a+(Number(d[key])||0),0)}
@@ -560,6 +566,60 @@
       m.set(k,(m.get(k)||0)+1);
     });
     return [...m.entries()].map(([label,value])=>({label,value})).sort((a,b)=>b.value-a.value);
+  }
+
+
+  const valueLabelPlugin = {
+    id:'valueLabelPlugin',
+    afterDatasetsDraw(chart,args,pluginOptions){
+      const opts = chart.options.plugins?.valueLabelPlugin || {};
+      if(!opts.display) return;
+      const {ctx, data} = chart;
+      ctx.save();
+
+      if(chart.config.type === 'doughnut'){
+        const dataset = data.datasets[0];
+        const total = (dataset.data || []).reduce((a,b)=>a+(Number(b)||0),0);
+        const meta = chart.getDatasetMeta(0);
+        ctx.font = 'bold 12px Inter, system-ui, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillStyle = '#172033';
+
+        meta.data.forEach((arc,i)=>{
+          const value = Number(dataset.data[i]) || 0;
+          if(!value || !total) return;
+          const p = arc.getProps(['x','y','startAngle','endAngle','outerRadius','innerRadius'], true);
+          const angle = (p.startAngle + p.endAngle) / 2;
+          const r = (p.outerRadius + p.innerRadius) / 2;
+          const x = p.x + Math.cos(angle) * r;
+          const y = p.y + Math.sin(angle) * r;
+          const pct = (value / total * 100).toLocaleString('es-EC',{minimumFractionDigits:1,maximumFractionDigits:1}) + '%';
+          ctx.fillText(pct, x, y - 7);
+          ctx.font = '11px Inter, system-ui, sans-serif';
+          ctx.fillText('(' + numFmt.format(value) + ')', x, y + 8);
+          ctx.font = 'bold 12px Inter, system-ui, sans-serif';
+        });
+      }else if(opts.horizontal){
+        const meta = chart.getDatasetMeta(0);
+        ctx.font = 'bold 11px Inter, system-ui, sans-serif';
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'middle';
+        ctx.fillStyle = '#172033';
+
+        meta.data.forEach((bar,i)=>{
+          const value = Number(data.datasets[0].data[i]) || 0;
+          const p = bar.tooltipPosition();
+          ctx.fillText(numFmt.format(value), p.x + 6, p.y);
+        });
+      }
+
+      ctx.restore();
+    }
+  };
+
+  if(window.Chart && !Chart.registry.plugins.get('valueLabelPlugin')){
+    Chart.register(valueLabelPlugin);
   }
 
   function makeChart(id,type,labels,datasets,options={}){
@@ -578,11 +638,13 @@
         interaction:{mode:'nearest',intersect:false},
         plugins:{
           legend:{display:datasets.length>1 || isDoughnut,position:'bottom'},
+          valueLabelPlugin:{display:options.valueLabels === true || isDoughnut, horizontal:horizontal},
           tooltip:{callbacks:{label:ctx=>{
             const v = ctx.raw ?? 0;
             return `${ctx.dataset.label || ctx.label}: ${options.money ? moneyFmt.format(v) : numFmt.format(v)}`;
           }}}
         },
+        layout:{padding: horizontal ? {right:42} : (isDoughnut ? {top:16,bottom:16,left:16,right:16} : {})},
         scales: isDoughnut ? {} : (horizontal ? {
           x:{beginAtZero:true,ticks:{callback:v=>options.money?moneyFmt.format(v):numFmt.format(v)}},
           y:{type:'category',grid:{display:false},ticks:{autoSkip:false,callback:function(value){return this.getLabelForValue(value);}}}
@@ -609,21 +671,21 @@
     );
 
     const prov = groupCount(filteredData,'provincia').slice(0,12);
-    makeChart('provinceChart','bar',prov.map(x=>x.label),[{label:'Operaciones',data:prov.map(x=>x.value)}],{horizontal:true});
+    makeChart('provinceChart','bar',prov.map(x=>x.label),[{label:'Operaciones',data:prov.map(x=>x.value)}],{horizontal:true,valueLabels:true});
 
     const banks = groupCount(filteredData,'banco').slice(0,8);
-    makeChart('bankChart','bar',banks.map(x=>x.label),[{label:'Operaciones',data:banks.map(x=>x.value)}],{horizontal:true});
+    makeChart('bankChart','bar',banks.map(x=>x.label),[{label:'Operaciones',data:banks.map(x=>x.value)}],{horizontal:true,valueLabels:true});
 
     const seg = groupCount(filteredData,'segmento');
     makeChart('segmentChart','doughnut',seg.map(x=>x.label),[{label:'Operaciones',data:seg.map(x=>x.value)}],{});
 
     const cant = groupCount(filteredData,'canton').slice(0,10);
-    makeChart('cantonChart','bar',cant.map(x=>x.label),[{label:'Operaciones',data:cant.map(x=>x.value)}],{horizontal:true});
+    makeChart('cantonChart','bar',cant.map(x=>x.label),[{label:'Operaciones',data:cant.map(x=>x.value)}],{horizontal:true,valueLabels:true});
   }
 
   async function setupMap(){
     if(!map){
-      map = L.map('map',{zoomControl:false,scrollWheelZoom:false}).setView([-1.6,-78.6],6);
+      map = L.map('map',{zoomControl:false,scrollWheelZoom:false}).setView([-1.7,-78.2],7);
       L.control.zoom({position:'bottomright'}).addTo(map);
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'&copy; OpenStreetMap'}).addTo(map);
     }
@@ -674,7 +736,7 @@
       }
     }).addTo(map);
 
-    try{map.fitBounds(geoLayer.getBounds(),{padding:[10,10]});}catch(e){}
+    try{map.fitBounds([[-5.1,-81.2],[1.6,-75.1]],{padding:[10,10]});}catch(e){}
     updateMapLegend(max);
     setTimeout(()=>map.invalidateSize(),150);
   }
