@@ -934,42 +934,65 @@
       const doc = new jsPDF({orientation:'p', unit:'mm', format:'a4', compress:true});
       const pageW = doc.internal.pageSize.getWidth();
       const pageH = doc.internal.pageSize.getHeight();
+
       const purple = [112,48,160];
       const lightBlue = [180,198,231];
       const gray = [242,242,242];
-      const margin = {left:10, right:10, top:14, bottom:14};
+      const grid = [185,185,185];
+
+      // Márgenes específicos del formato Presidencia.
+      const margin = {left:10, right:10, top:12, bottom:12};
       const contentW = pageW - margin.left - margin.right;
-      const logoSrc = './miti_miti.jpeg';
+
+      // La imagen debe estar en la misma carpeta del HTML con este nombre.
+      const logoCandidates = ['./miti_miti.jpeg','./miti_miti.jpg','miti_miti.jpeg','miti_miti.jpg'];
       let logoData = null;
-      try{ logoData = await loadImageAsDataURL(logoSrc); }catch(e){ console.warn('No se pudo cargar miti_miti.jpeg', e); }
+      for(const srcLogo of logoCandidates){
+        try{
+          logoData = await loadImageAsDataURL(srcLogo);
+          break;
+        }catch(e){}
+      }
+      if(!logoData) console.warn('No se pudo cargar la imagen miti_miti.jpeg. Verifica que esté junto al HTML en GitHub.');
 
       function addLogo(){
         if(logoData){
-          doc.addImage(logoData, 'JPEG', pageW - 47, 8, 34, 24, undefined, 'FAST');
+          // Posición equivalente al formato Presidencia: esquina superior derecha, sin encabezado adicional.
+          doc.addImage(logoData, 'JPEG', pageW - 73, 9, 45, 32, undefined, 'FAST');
         }
       }
 
-      function addTitle(text, y, size=12){
-        doc.setFont('helvetica','bold');
+      function setText(color=[0,0,0], style='normal', size=10){
+        doc.setTextColor(color[0], color[1], color[2]);
+        doc.setFont('helvetica', style);
         doc.setFontSize(size);
-        doc.setTextColor(purple[0], purple[1], purple[2]);
-        const lines = doc.splitTextToSize(String(text), contentW);
+      }
+
+      function writeWrapped(text, x, y, width, opts={}){
+        const size = opts.size || 10;
+        const gap = opts.gap || (size * 0.42);
+        setText(opts.color || [0,0,0], opts.style || 'normal', size);
+        const lines = doc.splitTextToSize(String(text || ''), width);
+        doc.text(lines, x, y, {align:opts.align || 'left'});
+        return y + (lines.length * gap);
+      }
+
+      function addTitle(text, y){
+        setText(purple, 'bold', 11.2);
+        const lines = doc.splitTextToSize(String(text), contentW - 10);
         doc.text(lines, margin.left, y);
         doc.setTextColor(0,0,0);
-        return y + lines.length * (size * 0.45) + 5;
+        return y + lines.length * 5.2 + 11;
       }
 
       function addSubtitle(text, y){
-        doc.setFont('helvetica','bold');
-        doc.setFontSize(11);
-        doc.setTextColor(0,0,0);
+        setText([0,0,0], 'bold', 10.4);
         doc.text(String(text), margin.left, y);
         return y + 8;
       }
 
       function addFuente(y, text='Fuente: Matriz Reporte de Colocaciones IFI´s'){
-        doc.setFont('helvetica','italic');
-        doc.setFontSize(8);
+        setText([0,0,0], 'italic', 7.4);
         doc.text(text, pageW/2, y, {align:'center'});
         return y + 8;
       }
@@ -979,11 +1002,35 @@
           startY,
           head,
           body,
-          margin:{left:margin.left, right:margin.right, top:margin.top, bottom:margin.bottom},
+          margin:{
+            left: options.left ?? margin.left,
+            right: options.right ?? margin.right,
+            top: margin.top,
+            bottom: margin.bottom
+          },
           tableWidth: options.tableWidth || contentW,
           theme:'grid',
-          styles:{font:'helvetica',fontSize:options.fontSize || 9,cellPadding:1.45,lineWidth:0.18,lineColor:[170,170,170],textColor:[0,0,0],overflow:'linebreak',valign:'middle'},
-          headStyles:{fillColor:purple,textColor:[255,255,255],fontStyle:'bold',halign:'center',valign:'middle'},
+          pageBreak:'auto',
+          rowPageBreak:'avoid',
+          showHead:'everyPage',
+          styles:{
+            font:'helvetica',
+            fontSize:options.fontSize || 8.7,
+            cellPadding:options.cellPadding || 1.35,
+            lineWidth:0.18,
+            lineColor:grid,
+            textColor:[0,0,0],
+            overflow:'linebreak',
+            valign:'middle'
+          },
+          headStyles:{
+            fillColor:purple,
+            textColor:[255,255,255],
+            fontStyle:'bold',
+            halign:'center',
+            valign:'middle',
+            fontSize:options.headFontSize || 8.5
+          },
           columnStyles:options.columnStyles || {},
           didParseCell:function(data){
             const raw = data.row.raw || {};
@@ -1003,71 +1050,214 @@
         return doc.lastAutoTable.finalY;
       }
 
-      const cutText = reportCutText();
+      function lastFallenMonthText(){
+        const ed = $('endDate').value ? new Date($('endDate').value+'T00:00:00') : null;
+        const base = ed && !isNaN(ed) ? ed : new Date();
+        return base.toLocaleDateString('es-EC',{day:'numeric',month:'long',year:'numeric'}).toUpperCase();
+      }
+
+      function subtitlePeriodo(){
+        const sd = $('startDate').value ? new Date($('startDate').value+'T00:00:00') : null;
+        const ed = $('endDate').value ? new Date($('endDate').value+'T00:00:00') : null;
+        if(sd && ed && !isNaN(sd) && !isNaN(ed)){
+          const s = sd.toLocaleDateString('es-EC',{month:'long',year:'numeric'}).toUpperCase();
+          const e = ed.toLocaleDateString('es-EC',{month:'long',year:'numeric'}).toUpperCase();
+          return `PERÍODO FILTRADO (${s} – ${e})`;
+        }
+        return 'PERÍODO FILTRADO';
+      }
+
+      function segmentCountReport(data){
+        const out = {VIS:{ops:0,credito:0,aporte:0}, VIP:{ops:0,credito:0,aporte:0}};
+        data.forEach(d=>{
+          const s = normalizeText(d.segmento);
+          const key = s.includes('VIP') ? 'VIP' : 'VIS';
+          out[key].ops++;
+          out[key].credito += Number(d.credito)||0;
+          out[key].aporte += Number(d.aporte)||0;
+        });
+        return out;
+      }
+
+      function groupBankSegmentPresidenciaLocal(data){
+        const banks = groupReport(data,'banco');
+        const rows = [];
+        banks.forEach(bank=>{
+          rows.push({type:'group', values:[bank.label, String(bank.ops), money2(bank.credito), money2(bank.aporte)]});
+          const seg = segmentCountReport(data.filter(d=>d.banco===bank.label));
+          ['VIS','VIP'].forEach(k=>{
+            if(seg[k].ops){
+              rows.push({type:'child', values:[k, String(seg[k].ops), money2(seg[k].credito), money2(seg[k].aporte)]});
+            }
+          });
+        });
+        const t = totalReport(data);
+        rows.push({type:'total', values:['Total', String(t.ops), money2(t.credito), money2(t.aporte)]});
+        return rows;
+      }
+
+      function groupProvinceSegmentPresidenciaLocal(data){
+        const m = new Map();
+        data.forEach(d=>{
+          let prov = d.provincia || 'Sin dato';
+          if(normalizeText(prov) === 'SANTO DOMINGO DE LOS TSACHILAS') prov = 'SANTO DOMINGO';
+          if(!m.has(prov)) m.set(prov,{provincia:prov,VIS:0,VIP:0,total:0});
+          const x = m.get(prov);
+          const s = normalizeText(d.segmento);
+          if(s.includes('VIP')) x.VIP++; else x.VIS++;
+          x.total++;
+        });
+        return [...m.values()].sort((a,b)=>b.total-a.total);
+      }
+
+      function drawEvolutionChart(x, y, w, h, keys, vals){
+        if(!keys.length) return;
+
+        const maxV = Math.max(...vals, 1);
+        const minV = Math.min(...vals, 0);
+        const span = Math.max(maxV - minV, 1);
+        const step = keys.length > 1 ? w / (keys.length - 1) : w;
+
+        doc.setDrawColor(226,226,226);
+        doc.setLineWidth(0.15);
+        doc.line(x, y + h, x + w, y + h);
+
+        doc.setDrawColor(purple[0], purple[1], purple[2]);
+        doc.setFillColor(purple[0], purple[1], purple[2]);
+        doc.setLineWidth(0.55);
+
+        let points = vals.map((v,i)=>{
+          const px = x + i * step;
+          const py = y + h - ((v - minV) / span) * h;
+          return {x:px, y:py, v};
+        });
+
+        for(let i=1;i<points.length;i++){
+          doc.line(points[i-1].x, points[i-1].y, points[i].x, points[i].y);
+        }
+
+        setText([0,0,0], 'normal', 4.2);
+        points.forEach((p,i)=>{
+          doc.circle(p.x, p.y, 0.55, 'F');
+          if(keys.length <= 38 || i % Math.ceil(keys.length / 38) === 0){
+            doc.text(String(p.v), p.x, p.y - 1.8, {align:'center'});
+          }
+        });
+
+        setText([0,0,0], 'normal', 4.7);
+        keys.forEach((k,i)=>{
+          if(keys.length <= 24 || i % Math.ceil(keys.length / 24) === 0){
+            const px = x + i * step;
+            doc.text(monthShortLabel(k), px, y + h + 5, {align:'center'});
+            doc.text(String(k.split('-')[0]), px, y + h + 9, {align:'center'});
+          }
+        });
+      }
+
+      const cutText = lastFallenMonthText();
       const t = totalReport(filteredData);
+      const generatedAt = new Date().toLocaleString('es-EC');
       const seg = segmentCountReport(filteredData);
+
       const segBody = [
         ['VIS', countFmt(seg.VIS.ops), money2(seg.VIS.credito), money2(seg.VIS.aporte)],
         ['VIP', countFmt(seg.VIP.ops), money2(seg.VIP.credito), money2(seg.VIP.aporte)],
         {0:'TOTAL',1:countFmt(t.ops),2:money2(t.credito),3:money2(t.aporte),__total:true}
       ];
 
+      // Página 1
       addLogo();
-      let y = 44;
-      y = addTitle(`1. PROGRAMA TU CASA MITI-MITI – MIT - CORTE DE INFORMACIÓN AL ${cutText}`, y, 11);
-      y = addSubtitle('1.1 PERÍODO FILTRADO', y + 8);
+      let y = 58;
+      y = addTitle(`1. PROGRAMA TU CASA MITI-MITI – MIT - CORTE DE INFORMACIÓN AL ${cutText}`, y);
+      y = addSubtitle(`1.1 ${subtitlePeriodo()}`, y);
+
       y = autoTablePres(y, [[
-        'Segmento','Número de\nViviendas\nFinanciadas','Cartera\nHipotecaria\nGenerada','Aporte Estado'
+        'Segmento',
+        'Número de\nViviendas\nFinanciadas',
+        'Cartera\nHipotecaria\nGenerada',
+        'Aporte Estado'
       ]], segBody, {
+        left:10,
         tableWidth:150,
-        fontSize:8.8,
-        columnStyles:{0:{cellWidth:42},1:{halign:'right',cellWidth:36},2:{halign:'right',cellWidth:38},3:{halign:'right',cellWidth:34}}
+        fontSize:8.6,
+        headFontSize:8.2,
+        columnStyles:{
+          0:{cellWidth:42},
+          1:{halign:'right',cellWidth:36},
+          2:{halign:'right',cellWidth:38},
+          3:{halign:'right',cellWidth:34}
+        }
       });
       y = addFuente(y + 4);
 
-      y = addSubtitle('1.2 INSTITUCIONES FINANCIERAS – PERÍODO FILTRADO', y + 6);
-      const bankRows = groupBankSegmentPresidencia(filteredData).map(r=>{
+      y = addSubtitle(`1.2 INSTITUCIONES FINANCIERAS – ${subtitlePeriodo()}`, y + 7);
+
+      const bankRows = groupBankSegmentPresidenciaLocal(filteredData).map(r=>{
         const obj = {0:r.values[0],1:r.values[1],2:r.values[2],3:r.values[3]};
         if(r.type === 'group') obj.__group = true;
         if(r.type === 'total') obj.__total = true;
         return obj;
       });
+
       y = autoTablePres(y, [[
-        'Institución Financiera','Número de\nViviendas\nFinanciadas','Cartera\nHipotecaria\nGenerada por\nVIS & VIP','Aporte Estado'
+        'Institución Financiera',
+        'Número de\nViviendas\nFinanciadas',
+        'Cartera\nHipotecaria\nGenerada por\nVIS & VIP',
+        'Aporte Estado'
       ]], bankRows, {
+        left:10,
         tableWidth:150,
-        fontSize:7.8,
-        columnStyles:{0:{cellWidth:60},1:{halign:'right',cellWidth:28},2:{halign:'right',cellWidth:35},3:{halign:'right',cellWidth:27}}
+        fontSize:7.45,
+        headFontSize:7.2,
+        cellPadding:1.08,
+        columnStyles:{
+          0:{cellWidth:60},
+          1:{halign:'right',cellWidth:28},
+          2:{halign:'right',cellWidth:35},
+          3:{halign:'right',cellWidth:27}
+        }
       });
       addFuente(y + 4);
 
+      // Página 2
       doc.addPage();
       y = 18;
-      y = addSubtitle('1.3 POR PROVINCIA – PERÍODO FILTRADO', y);
-      const provinceRows = groupProvinceSegmentPresidencia(filteredData);
-      const provinceBody = provinceRows.map((r,i)=>({0:r.provincia,1:r.VIS?countFmt(r.VIS):'',2:r.VIP?countFmt(r.VIP):'',3:countFmt(r.total),__stripe:i%2===1}));
+      y = addSubtitle(`1.3 POR PROVINCIA – ${subtitlePeriodo()}`, y);
+
+      const provinceRows = groupProvinceSegmentPresidenciaLocal(filteredData);
+      const provinceBody = provinceRows.map((r,i)=>({
+        0:r.provincia,
+        1:r.VIS ? countFmt(r.VIS) : '',
+        2:r.VIP ? countFmt(r.VIP) : '',
+        3:countFmt(r.total),
+        __stripe:i%2===1
+      }));
       const totalVIS = provinceRows.reduce((a,r)=>a+r.VIS,0);
       const totalVIP = provinceRows.reduce((a,r)=>a+r.VIP,0);
       const totalProv = provinceRows.reduce((a,r)=>a+r.total,0);
       provinceBody.push({0:'TOTAL',1:countFmt(totalVIS),2:countFmt(totalVIP),3:countFmt(totalProv),__total:true});
+
       y = autoTablePres(y, [[
         {content:'NÚMERO DE VIVIENDAS VIS & VIP FINANCIADAS', colSpan:1, styles:{halign:'center'}},
         'VIS','VIP','TOTAL'
       ],[
         'PROVINCIA','','',''
       ]], provinceBody, {
-        tableWidth:170,
-        fontSize:9.2,
-        columnStyles:{0:{cellWidth:116,fontStyle:'bold'},1:{halign:'right',cellWidth:18},2:{halign:'right',cellWidth:18},3:{halign:'right',cellWidth:18}}
+        left:24,
+        tableWidth:158,
+        fontSize:8.9,
+        headFontSize:8.7,
+        cellPadding:1.0,
+        columnStyles:{
+          0:{cellWidth:107,fontStyle:'bold'},
+          1:{halign:'right',cellWidth:17},
+          2:{halign:'right',cellWidth:17},
+          3:{halign:'right',cellWidth:17}
+        }
       });
       y = addFuente(y + 4);
 
-      if(y > 226){
-        doc.addPage();
-        y = 18;
-      }else{
-        y += 8;
-      }
+      y += 8;
       y = addSubtitle('1.4 GRÁFICA DE EVOLUCIÓN DEL CRÉDITO MITI – MITI', y);
 
       const monthly = new Map();
@@ -1077,45 +1267,22 @@
       });
       const keys = [...monthly.keys()].sort();
       const vals = keys.map(k=>monthly.get(k));
-      const chartX = margin.left + 3;
-      const chartY = y + 24;
-      const chartW = contentW - 6;
-      const chartH = 38;
-      if(keys.length){
-        const maxV = Math.max(...vals, 1);
-        const step = keys.length > 1 ? chartW / (keys.length - 1) : chartW;
-        doc.setDrawColor(205,205,205);
-        doc.setLineWidth(0.2);
-        doc.line(chartX, chartY + chartH, chartX + chartW, chartY + chartH);
-        doc.setDrawColor(purple[0], purple[1], purple[2]);
-        doc.setLineWidth(0.7);
-        vals.forEach((v,i)=>{
-          const x = chartX + i*step;
-          const py = chartY + chartH - (v/maxV)*chartH;
-          if(i>0){
-            const px = chartX + (i-1)*step;
-            const pv = chartY + chartH - (vals[i-1]/maxV)*chartH;
-            doc.line(px,pv,x,py);
-          }
-          doc.circle(x, py, 0.7, 'F');
-        });
-        doc.setFont('helvetica','normal');
-        doc.setFontSize(4.8);
-        doc.setTextColor(0,0,0);
-        keys.forEach((k,i)=>{
-          const x = chartX + i*step;
-          if(keys.length <= 18 || i%Math.ceil(keys.length/18)===0){
-            doc.text(monthShortLabel(k), x, chartY + chartH + 5, {align:'center'});
-            doc.text(String(k.split('-')[0]), x, chartY + chartH + 9, {align:'center'});
-          }
-        });
-      }
+
+      const chartX = 10;
+      const chartY = Math.max(y + 42, 223);
+      const chartW = pageW - 20;
+      const chartH = 23;
+      drawEvolutionChart(chartX, chartY, chartW, chartH, keys, vals);
+
       y = chartY + chartH + 18;
       y = addFuente(y, `Fuente: Matriz Reporte de Colocaciones IFI´s / corte: ${cutText.toLowerCase()}`);
-      doc.setFont('helvetica','italic');
-      doc.setFontSize(6.5);
-      const nota = 'Nota: 1. Es importante precisar que, la información se consolida a medida que las IFI reportan su colocación. Por tal razón, el presente documento se genera con la información disponible conforme al período filtrado.';
-      doc.text(doc.splitTextToSize(nota, contentW), margin.left, pageH - 18);
+
+      setText([0,0,0], 'italic', 6.7);
+      doc.text('Nota: La presente información corresponde al último mes caído.', margin.left, pageH - 17);
+
+      setText([95,95,95], 'normal', 5.8);
+      doc.text(`Generado: ${generatedAt}`, pageW - margin.right, pageH - 7, {align:'right'});
+      doc.setTextColor(0,0,0);
 
       const fileName = `reporte_presidencia_miti_miti_${new Date().toISOString().slice(0,10)}.pdf`;
       doc.save(fileName);
@@ -1130,7 +1297,7 @@
     }
   }
 
-  async function generateReportAyudaMemoria(){
+async function generateReportAyudaMemoria(){
     if(!filteredData || !filteredData.length){
       alert('No hay datos para generar el reporte con los filtros seleccionados.');
       return;
@@ -1465,3 +1632,4 @@
 </script>
 </body>
 </html>
+
