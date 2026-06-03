@@ -1305,7 +1305,7 @@
       drawEvolutionChart(chartX, chartY, chartW, chartH, keys, vals);
 
       y = chartY + chartH + 14;
-      y = addFuente(y, `Fuente: Matriz Reporte de Colocaciones IFI´s / corte: ${cutText.toLowerCase()}`);
+      y = addFuente(y, `Fuente: Matriz Reporte de Colocaciones IFI´s`);
 
       setText([0,0,0], 'italic', 6.7);
       doc.text('Nota: La presente información corresponde al último mes caído.', margin.left, Math.min(y + 7, pageH - 20));
