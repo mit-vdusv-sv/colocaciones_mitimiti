@@ -834,6 +834,39 @@
   }
 
 
+
+  async function savePdfAsFileOnly(doc, fileName){
+    const blob = doc.output('blob');
+    const file = new File([blob], fileName, {type:'application/pdf'});
+
+    // En móviles compatibles, esto fuerza compartir únicamente el archivo PDF,
+    // sin adjuntar el enlace blob del navegador.
+    if(navigator.share && navigator.canShare && navigator.canShare({files:[file]})){
+      try{
+        await navigator.share({
+          files:[file],
+          title:fileName
+        });
+        return;
+      }catch(e){
+        // Si el usuario cancela el menú de compartir, no se fuerza una descarga adicional.
+        if(e && (e.name === 'AbortError' || e.name === 'NotAllowedError')) return;
+        console.warn('No se pudo compartir como archivo; se descargará el PDF.', e);
+      }
+    }
+
+    // Respaldo para escritorio o navegadores sin Web Share API para archivos.
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = fileName;
+    a.rel = 'noopener';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(()=>URL.revokeObjectURL(url), 1500);
+  }
+
   function generateReport(){
     const formato = $('reportFormat') ? $('reportFormat').value : 'ayuda';
     if(formato === 'presidencia') return generateReportPresidencia();
@@ -1305,7 +1338,7 @@
       drawEvolutionChart(chartX, chartY, chartW, chartH, keys, vals);
 
       y = chartY + chartH + 14;
-      y = addFuente(y, `Fuente: Matriz Reporte de Colocaciones IFI´s`);
+      y = addFuente(y, `Fuente: Matriz Reporte de Colocaciones IFI´s / corte: ${cutText.toLowerCase()}`);
 
       setText([0,0,0], 'italic', 6.7);
       doc.text('Nota: La presente información corresponde al último mes caído.', margin.left, Math.min(y + 7, pageH - 20));
@@ -1315,7 +1348,7 @@
       doc.setTextColor(0,0,0);
 
       const fileName = `reporte_presidencia_miti_miti_${new Date().toISOString().slice(0,10)}.pdf`;
-      doc.save(fileName);
+      await savePdfAsFileOnly(doc, fileName);
     }catch(err){
       console.error(err);
       alert('No se pudo generar el PDF Presidencia. Revisa la consola del navegador para ver el detalle del error.');
@@ -1327,7 +1360,7 @@
     }
   }
 
-async function generateReportAyudaMemoria(){
+  async function generateReportAyudaMemoria(){
     if(!filteredData || !filteredData.length){
       alert('No hay datos para generar el reporte con los filtros seleccionados.');
       return;
@@ -1616,7 +1649,7 @@ async function generateReportAyudaMemoria(){
       }
 
       const fileName = `reporte_miti_miti_${new Date().toISOString().slice(0,10)}.pdf`;
-      doc.save(fileName);
+      await savePdfAsFileOnly(doc, fileName);
     }catch(err){
       console.error(err);
       alert('No se pudo generar el PDF. Revisa la consola del navegador para ver el detalle del error.');
