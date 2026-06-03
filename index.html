@@ -982,9 +982,9 @@
       function addLogo(){
         if(logoInfo){
           // Se conserva la proporción real de la imagen para evitar distorsión.
-          const logoW = 40;
+          const logoW = 43;
           const logoH = logoW * (logoInfo.height / logoInfo.width);
-          doc.addImage(logoInfo.data, 'JPEG', pageW - 68, 10, logoW, logoH, undefined, 'FAST');
+          doc.addImage(logoInfo.data, 'JPEG', pageW - 72, 12, logoW, logoH, undefined, 'FAST');
         }
       }
 
@@ -1150,7 +1150,7 @@
 
         doc.setDrawColor(purple[0], purple[1], purple[2]);
         doc.setFillColor(purple[0], purple[1], purple[2]);
-        doc.setLineWidth(0.55);
+        doc.setLineWidth(0.6);
 
         let points = vals.map((v,i)=>{
           const px = x + i * step;
@@ -1162,17 +1162,20 @@
           doc.line(points[i-1].x, points[i-1].y, points[i].x, points[i].y);
         }
 
-        setText([0,0,0], 'normal', 4.2);
+        const valueStep = keys.length <= 24 ? 4 : Math.ceil(keys.length / 12);
+        setText([0,0,0], 'normal', 4.0);
         points.forEach((p,i)=>{
-          doc.circle(p.x, p.y, 0.55, 'F');
-          if(keys.length <= 38 || i % Math.ceil(keys.length / 38) === 0){
-            doc.text(String(p.v), p.x, p.y - 1.8, {align:'center'});
+          doc.circle(p.x, p.y, 0.5, 'F');
+          // Menos etiquetas para que la gráfica se vea limpia y proporcional.
+          if(i === 0 || i === points.length - 1 || i % valueStep === 0){
+            doc.text(String(p.v), p.x, p.y - 1.9, {align:'center'});
           }
         });
 
-        setText([0,0,0], 'normal', 4.7);
+        const labelStep = keys.length <= 18 ? 3 : Math.ceil(keys.length / 10);
+        setText([0,0,0], 'normal', 4.5);
         keys.forEach((k,i)=>{
-          if(keys.length <= 24 || i % Math.ceil(keys.length / 24) === 0){
+          if(i === 0 || i === keys.length - 1 || i % labelStep === 0){
             const px = x + i * step;
             doc.text(monthShortLabel(k), px, y + h + 5, {align:'center'});
             doc.text(String(k.split('-')[0]), px, y + h + 9, {align:'center'});
@@ -1193,7 +1196,7 @@
 
       // Página 1
       addLogo();
-      let y = 60;
+      let y = 54;
       y = addTitle(`1. PROGRAMA TU CASA MITI-MITI – MIT - CORTE DE INFORMACIÓN AL ${cutText}`, y);
       y = addSubtitle(`1.1 ${subtitlePeriodo()}`, y);
 
@@ -1233,9 +1236,9 @@
       ]], bankRows, {
         left:10,
         tableWidth:150,
-        fontSize:7.45,
-        headFontSize:7.2,
-        cellPadding:1.08,
+        fontSize:7.25,
+        headFontSize:7.0,
+        cellPadding:0.92,
         columnStyles:{
           0:{cellWidth:60},
           1:{halign:'right',cellWidth:28},
@@ -1271,9 +1274,9 @@
       ]], provinceBody, {
         left:24,
         tableWidth:158,
-        fontSize:8.9,
-        headFontSize:8.7,
-        cellPadding:1.0,
+        fontSize:8.55,
+        headFontSize:8.35,
+        cellPadding:0.82,
         columnStyles:{
           0:{cellWidth:107,fontStyle:'bold'},
           1:{halign:'right',cellWidth:17},
@@ -1295,16 +1298,16 @@
       const vals = keys.map(k=>monthly.get(k));
 
       const chartX = 10;
-      const chartY = Math.max(y + 42, 223);
+      const chartY = Math.max(y + 26, 213);
       const chartW = pageW - 20;
-      const chartH = 23;
+      const chartH = 30;
       drawEvolutionChart(chartX, chartY, chartW, chartH, keys, vals);
 
-      y = chartY + chartH + 18;
+      y = chartY + chartH + 15;
       y = addFuente(y, `Fuente: Matriz Reporte de Colocaciones IFI´s / corte: ${cutText.toLowerCase()}`);
 
       setText([0,0,0], 'italic', 6.7);
-      doc.text('Nota: La presente información corresponde al último mes caído.', margin.left, pageH - 17);
+      doc.text('Nota: La presente información corresponde al último mes caído.', margin.left, pageH - 18);
 
       setText([95,95,95], 'normal', 5.8);
       doc.text(`Generado: ${generatedAt}`, pageW - margin.right, pageH - 7, {align:'right'});
@@ -1658,5 +1661,3 @@ async function generateReportAyudaMemoria(){
 </script>
 </body>
 </html>
-
-
