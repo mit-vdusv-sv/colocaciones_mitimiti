@@ -1,0 +1,16 @@
+{
+  "name": "Dashboard de Colocaciones",
+  "short_name": "Colocaciones",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#4b1f74",
+  "theme_color": "#4b1f74",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "icono_colocaciones.jpg",
+      "sizes": "512x512",
+      "type": "image/jpeg"
+    }
+  ]
+}
