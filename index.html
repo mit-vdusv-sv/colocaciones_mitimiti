@@ -1760,5 +1760,12 @@
   // Actualización automática: 60 segundos. Conserva filtros válidos.
   setInterval(loadData, 60000);
 </script>
+  <script>
+  if ("serviceWorker" in navigator) {
+    window.addEventListener("load", () => {
+      navigator.serviceWorker.register("./sw.js");
+    });
+  }
+</script>
 </body>
 </html>
