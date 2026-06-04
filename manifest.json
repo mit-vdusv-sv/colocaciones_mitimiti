@@ -1,6 +1,6 @@
 {
-  "name": "Dashboard de Colocaciones",
-  "short_name": "Colocaciones",
+  "name": "Colocaciones Miti-Miti",
+  "short_name": "Miti-Miti",
   "description": "Dashboard de colocaciones VIS y VIP",
   "start_url": "./index.html",
   "scope": "./",
