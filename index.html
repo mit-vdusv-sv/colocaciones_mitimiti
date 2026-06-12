@@ -1749,8 +1749,15 @@
     box.textContent=msg;
   }
 
+  function applyGovernmentDatePreset(){
+    if(normalizeText($('gobiernoFilter').value) === 'GOBIERNO ACTUAL'){
+      $('startDate').value = '2023-11-23';
+    }
+  }
+
   ['provinciaFilter','bancoFilter','gobiernoFilter','startDate','endDate'].forEach(id=>$(id).addEventListener('change',()=>{
     if(id==='provinciaFilter') updateCantonOptions();
+    if(id==='gobiernoFilter') applyGovernmentDatePreset();
     applyFilters();
   }));
   $('cantonFilter').addEventListener('change',applyFilters);
