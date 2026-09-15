@@ -1231,11 +1231,13 @@
         data.forEach(d=>{
           let prov = d.provincia || 'Sin dato';
           if(normalizeText(prov) === 'SANTO DOMINGO DE LOS TSACHILAS') prov = 'SANTO DOMINGO';
-          if(!m.has(prov)) m.set(prov,{provincia:prov,VIS:0,VIP:0,total:0});
+          if(!m.has(prov)) m.set(prov,{provincia:prov,VIS:0,VIP:0,total:0,credito:0,aporte:0});
           const x = m.get(prov);
           const s = normalizeText(d.segmento);
           if(s.includes('VIP')) x.VIP++; else x.VIS++;
           x.total++;
+          x.credito += Number(d.credito)||0;
+          x.aporte += Number(d.aporte)||0;
         });
         return [...m.values()].sort((a,b)=>b.total-a.total);
       }
@@ -1361,33 +1363,42 @@
         1:r.VIS ? countFmt(r.VIS) : '',
         2:r.VIP ? countFmt(r.VIP) : '',
         3:countFmt(r.total),
+        4:money2(r.credito),
+        5:money2(r.aporte),
         __stripe:i%2===1
       }));
       const totalVIS = provinceRows.reduce((a,r)=>a+r.VIS,0);
       const totalVIP = provinceRows.reduce((a,r)=>a+r.VIP,0);
       const totalProv = provinceRows.reduce((a,r)=>a+r.total,0);
-      provinceBody.push({0:'TOTAL',1:countFmt(totalVIS),2:countFmt(totalVIP),3:countFmt(totalProv),__total:true});
+      provinceBody.push({0:'TOTAL',1:countFmt(totalVIS),2:countFmt(totalVIP),3:countFmt(totalProv),4:money2(t.credito),5:money2(t.aporte),__total:true});
 
       y = autoTablePres(y, [[
-        {content:'NÚMERO DE VIVIENDAS VIS & VIP FINANCIADAS', colSpan:1, styles:{halign:'center'}},
-        'VIS','VIP','TOTAL'
+        {content:'NÚMERO DE VIVIENDAS VIS & VIP FINANCIADAS', colSpan:4, styles:{halign:'center'}},
+        {content:'CARTERA\nHIPOTECARIA', rowSpan:2},
+        {content:'APORTE DEL\nESTADO', rowSpan:2}
       ],[
-        'PROVINCIA','','',''
+        'PROVINCIA','VIS','VIP','TOTAL'
       ]], provinceBody, {
-        tableWidth:158,
-        fontSize:8.55,
-        headFontSize:8.35,
+        tableWidth:contentW,
+        fontSize:8.0,
+        headFontSize:8.0,
         cellPadding:0.82,
         columnStyles:{
-          0:{cellWidth:107,fontStyle:'bold'},
+          0:{cellWidth:58,fontStyle:'bold'},
           1:{halign:'right',cellWidth:17},
           2:{halign:'right',cellWidth:17},
-          3:{halign:'right',cellWidth:17}
+          3:{halign:'right',cellWidth:19},
+          4:{halign:'right',cellWidth:40},
+          5:{halign:'right',cellWidth:contentW - 151}
         }
       });
       y = addFuente(y + 4);
 
       y += 5;
+      if(y + 104 > pageH - margin.bottom){
+        doc.addPage();
+        y = 18;
+      }
       y = addSubtitle('1.4 GRÁFICA DE EVOLUCIÓN DEL CRÉDITO MITI – MITI', y, {size:10.1});
 
       const monthly = new Map();
@@ -1400,7 +1411,7 @@
 
       const chartW = 186;
       const chartX = centerX(chartW);
-      const chartY = Math.max(y + 15, 199);
+      const chartY = Math.min(Math.max(y + 15, 199), pageH - margin.bottom - 70);
       const chartH = 36;
       drawEvolutionChart(chartX, chartY, chartW, chartH, keys, vals);
 
@@ -1409,6 +1420,31 @@
 
       setText([0,0,0], 'italic', 6.7);
       doc.text('Nota: La presente información corresponde al último mes caído.', margin.left, Math.min(y + 7, pageH - 20));
+
+      // Cuadro de elaboración y aprobación del documento de referencia.
+      // Se deja espacio para las firmas; no se incorpora una firma preexistente.
+      let signatureY = y + 17;
+      const signatureH = 42;
+      if(signatureY + signatureH > pageH - margin.bottom){
+        doc.addPage();
+        signatureY = 22;
+      }
+      doc.autoTable({
+        startY:signatureY,
+        margin:{left:30,right:30,top:margin.top,bottom:margin.bottom},
+        tableWidth:pageW - 60,
+        theme:'plain',
+        pageBreak:'avoid',
+        rowPageBreak:'avoid',
+        styles:{font:'helvetica',fontSize:9,textColor:[0,0,0],cellPadding:1.2,halign:'left',valign:'middle'},
+        columnStyles:{0:{cellWidth:(pageW - 60)/2},1:{cellWidth:(pageW - 60)/2}},
+        body:[
+          [{content:'Elaborado por:',styles:{fontStyle:'bold'}},{content:'Revisado y Aprobado',styles:{fontStyle:'bold'}}],
+          [{content:'',styles:{minCellHeight:23}},{content:'',styles:{minCellHeight:23}}],
+          ['Mgs. Gabriela Ramírez','Mgs. Adriana Correa'],
+          ['Analista','Gerente de Proyecto 1']
+        ]
+      });
 
       setText([95,95,95], 'normal', 5.8);
       doc.text(`Generado: ${generatedAt}`, pageW - margin.right, pageH - 7, {align:'right'});
